@@ -1591,7 +1591,7 @@ function renderPlanner(){
         
         html+=`<div class="planner-box"><table class="planner"><thead>
         <tr class="weekday-row">
-            <th class="member-name" rowspan="2">Membro</th>`;
+            <th class="member-name" rowspan="2">Utente</th>`;
 
         for(let d=1;d<=m.d;d++){
             html+=`<th>${["dom","lun","mar","mer","gio","ven","sab"][new Date(currentYear,mi,d).getDay()]}</th>`;
@@ -1988,7 +1988,7 @@ function changeYear(delta){
 function exportToExcel(){
     const wb=XLSX.utils.book_new();
     months.forEach((m,mi)=>{
-        const aoa=[["Membro",...Array.from({length:m.d},(_,i)=>i+1)]];
+        const aoa=[["Utente",...Array.from({length:m.d},(_,i)=>i+1)]];
         users.forEach(u=>{
             const row=[u];
             for(let d=1;d<=m.d;d++){
