@@ -935,6 +935,248 @@ kbd {
     color: #f3f4f6;
 }
 
+/* ================= MODAL ANALISI UTENTE FULLSCREEN ================= */
+.user-analysis-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    overflow-y: auto;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.user-analysis-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: var(--bg-primary);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+    animation: slideInUp 0.4s ease;
+}
+
+.user-analysis-header {
+    background: linear-gradient(135deg, #172754, #3b82f6);
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.user-analysis-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-analysis-title h2 {
+    color: white;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.user-analysis-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.user-analysis-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.user-analysis-body {
+    padding: 32px;
+}
+
+.analysis-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.analysis-stat-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.analysis-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-stat-icon {
+    font-size: 32px;
+    margin-bottom: 8px;
+}
+
+.analysis-stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--title-blue);
+    margin: 8px 0;
+}
+
+.analysis-stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.analysis-section {
+    background: var(--bg-secondary);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.analysis-section-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--title-blue);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.analysis-chart-container {
+    height: 300px;
+    position: relative;
+}
+
+.month-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.month-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-primary);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.month-chip:hover {
+    border-color: var(--accent-blue);
+    background: var(--hover-bg);
+}
+
+.month-chip.active {
+    border-color: var(--accent-blue);
+    background: var(--accent-blue);
+    color: white;
+}
+
+.holidays-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.holiday-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    border-left: 4px solid #3b82f6;
+}
+
+.holiday-item.full-day {
+    border-left-color: #ef4444;
+}
+
+.holiday-item.morning {
+    border-left-color: #3b82f6;
+}
+
+.holiday-item.afternoon {
+    border-left-color: #a855f7;
+}
+
+.holiday-icon {
+    font-size: 20px;
+}
+
+.holiday-date {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 100px;
+}
+
+.holiday-type {
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .user-analysis-body {
+        padding: 20px;
+    }
+    
+    .analysis-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 </style>
 </head>
 
@@ -1153,6 +1395,98 @@ kbd {
   </div>
 </div>
 
+<!-- MODAL ANALISI UTENTE FULLSCREEN -->
+<div id="userAnalysisModal" class="user-analysis-modal">
+    <div class="user-analysis-content">
+        <!-- Header -->
+        <div class="user-analysis-header">
+            <div class="user-analysis-title">
+                <h2 id="analysisUserName">Analisi Ferie</h2>
+                <span id="analysisUserCrown"></span>
+            </div>
+            <button class="user-analysis-close" onclick="closeUserAnalysis()">×</button>
+        </div>
+        
+        <!-- Body -->
+        <div class="user-analysis-body">
+            <!-- Stats Cards -->
+            <div class="analysis-stats-grid">
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-icon">📊</div>
+                    <div class="analysis-stat-value" id="analysisTotalDays">0</div>
+                    <div class="analysis-stat-label">Giorni Totali</div>
+                </div>
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-icon">🏆</div>
+                    <div class="analysis-stat-value" id="analysisTopMonth">-</div>
+                    <div class="analysis-stat-label">Mese con Più Ferie</div>
+                </div>
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-icon">🗓️</div>
+                    <div class="analysis-stat-value" id="analysisPeriods">0</div>
+                    <div class="analysis-stat-label">Periodi di Ferie</div>
+                </div>
+                <div class="analysis-stat-card">
+                    <div class="analysis-stat-icon">⏱️</div>
+                    <div class="analysis-stat-value" id="analysisTotalHours">0h</div>
+                    <div class="analysis-stat-label">Ore Totali</div>
+                </div>
+            </div>
+            
+            <!-- Grafico -->
+            <div class="analysis-section">
+                <div class="analysis-section-title">
+                    📈 Distribuzione Mensile
+                </div>
+                <div class="analysis-chart-container">
+                    <canvas id="analysisChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Dettaglio per Mese -->
+            <div class="analysis-section">
+                <div class="analysis-section-title">
+                    📅 Dettaglio Ferie per Mese
+                </div>
+                
+                <!-- Selector Mesi -->
+                <div class="month-selector" id="monthSelector">
+                    <!-- Popolato dinamicamente -->
+                </div>
+                
+                <!-- Timeline Ferie -->
+                <div class="holidays-timeline" id="holidaysTimeline">
+                    <!-- Popolato dinamicamente -->
+                </div>
+            </div>
+            
+            <!-- Footer Actions -->
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;">
+                <button onclick="exportUserAnalysisPDF()" style="
+                    padding:14px 28px;
+                    background:#3b82f6;
+                    color:white;
+                    border:none;
+                    border-radius:8px;
+                    cursor:pointer;
+                    font-weight:600;
+                    font-size:15px;
+                ">📄 Esporta Report PDF</button>
+                <button onclick="closeUserAnalysis()" style="
+                    padding:14px 28px;
+                    background:#6b7280;
+                    color:white;
+                    border:none;
+                    border-radius:8px;
+                    cursor:pointer;
+                    font-weight:600;
+                    font-size:15px;
+                ">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 /* ================= JS CON FIREBASE ================= */
 const users=["Damiano","Gianluca","Gregorio","Leonardo","Samuela","Simone"];
@@ -1364,6 +1698,8 @@ function renderFilters(){
         const chip = document.createElement('div');
         chip.className = 'filter-chip' + (activeFilters.has(u) ? ' active' : '');
         chip.onclick = () => toggleFilter(u);
+        chip.ondblclick = () => openUserAnalysis(u);
+        chip.title = 'Click: mostra/nascondi | Doppio click: analisi dettagliata';
         
         const color = document.createElement('div');
         color.className = 'filter-chip-color';
@@ -1657,7 +1993,9 @@ function renderDashboard(){
             }
         });
         tb.innerHTML+=`<tr>
-            <td>${u}</td>
+            <td style="cursor:pointer;font-weight:600;color:var(--accent-blue);" onclick="openUserAnalysis('${u}')" title="Clicca per analisi dettagliata">
+                📊 ${u}
+            </td>
             <td>${days.toFixed(1)}</td>
             <td>${(days * 8).toFixed(0)}</td>
         </tr>`;
@@ -1954,6 +2292,273 @@ async function applyRangeHolidays(){
     closeRangeModal();
     render();
     alert(`Inserite ${count} giornate di ferie per ${user}`);
+}
+
+// ================= ANALISI UTENTE =================
+
+let analysisChart = null;
+let currentAnalysisUser = null;
+
+function openUserAnalysis(username){
+    currentAnalysisUser = username;
+    
+    // Apri modal
+    document.getElementById('userAnalysisModal').style.display = 'flex';
+    
+    // Imposta nome utente
+    document.getElementById('analysisUserName').textContent = `Analisi Ferie - ${username}`;
+    
+    // Aggiungi corona se è top user
+    const userDays = {};
+    users.forEach(u => {
+        userDays[u] = 0;
+        months.forEach((m, mi) => {
+            for(let d = 1; d <= m.d; d++){
+                const key = `${u}-${currentYear}-${mi}-${d}`;
+                userDays[u] += parseDays(dataCache[key] || "");
+            }
+        });
+    });
+    const maxUser = users.reduce((a, b) => userDays[a] > userDays[b] ? a : b);
+    document.getElementById('analysisUserCrown').innerHTML = username === maxUser ? '<span class="crown-icon">👑</span>' : '';
+    
+    // Calcola e mostra statistiche
+    calculateUserStats(username);
+}
+
+function closeUserAnalysis(){
+    document.getElementById('userAnalysisModal').style.display = 'none';
+    if(analysisChart){
+        analysisChart.destroy();
+        analysisChart = null;
+    }
+}
+
+function calculateUserStats(username){
+    let totalDays = 0;
+    let totalHours = 0;
+    let monthDays = Array(12).fill(0);
+    let holidayPeriods = [];
+    
+    // Calcola dati per ogni mese
+    months.forEach((m, mi) => {
+        for(let d = 1; d <= m.d; d++){
+            const key = `${username}-${currentYear}-${mi}-${d}`;
+            const value = dataCache[key] || "";
+            const days = parseDays(value);
+            
+            if(days > 0){
+                totalDays += days;
+                totalHours += days * 8;
+                monthDays[mi] += days;
+                
+                holidayPeriods.push({
+                    month: mi,
+                    day: d,
+                    value: value,
+                    days: days
+                });
+            }
+        }
+    });
+    
+    // Aggiorna stats cards
+    document.getElementById('analysisTotalDays').textContent = totalDays.toFixed(1);
+    document.getElementById('analysisTotalHours').textContent = totalHours.toFixed(0) + 'h';
+    
+    // Mese con più ferie
+    const maxMonthIdx = monthDays.indexOf(Math.max(...monthDays));
+    const maxMonthDays = monthDays[maxMonthIdx];
+    if(maxMonthDays > 0){
+        document.getElementById('analysisTopMonth').textContent = months[maxMonthIdx].n;
+    } else {
+        document.getElementById('analysisTopMonth').textContent = '-';
+    }
+    
+    // Conta periodi (giorni consecutivi = 1 periodo)
+    let periods = 0;
+    let inPeriod = false;
+    months.forEach((m, mi) => {
+        for(let d = 1; d <= m.d; d++){
+            const key = `${username}-${currentYear}-${mi}-${d}`;
+            const value = dataCache[key] || "";
+            if(parseDays(value) > 0){
+                if(!inPeriod){
+                    periods++;
+                    inPeriod = true;
+                }
+            } else {
+                inPeriod = false;
+            }
+        }
+    });
+    document.getElementById('analysisPeriods').textContent = periods;
+    
+    // Renderizza grafico
+    renderUserChart(username, monthDays);
+    
+    // Popola selector mesi
+    populateMonthSelector(username, monthDays);
+    
+    // Mostra primo mese con ferie
+    const firstMonthWithHolidays = monthDays.findIndex(days => days > 0);
+    if(firstMonthWithHolidays !== -1){
+        showMonthDetails(username, firstMonthWithHolidays);
+    } else {
+        showMonthDetails(username, 0); // Mostra gennaio se nessuna ferie
+    }
+}
+
+function renderUserChart(username, monthDays){
+    const ctx = document.getElementById('analysisChart');
+    
+    if(analysisChart){
+        analysisChart.destroy();
+    }
+    
+    analysisChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: months.map(m => m.s),
+            datasets: [{
+                label: username,
+                data: monthDays,
+                backgroundColor: userColors[username].bg,
+                borderColor: userColors[username].border,
+                borderWidth: 2,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context){
+                            return `${context.parsed.y.toFixed(1)} giorni (${(context.parsed.y * 8).toFixed(0)} ore)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value){
+                            return value + ' gg';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+function populateMonthSelector(username, monthDays){
+    const container = document.getElementById('monthSelector');
+    container.innerHTML = '';
+    
+    months.forEach((m, mi) => {
+        const chip = document.createElement('div');
+        chip.className = 'month-chip';
+        chip.textContent = `${m.n} (${monthDays[mi].toFixed(1)}gg)`;
+        chip.onclick = () => {
+            // Rimuovi active da tutti
+            container.querySelectorAll('.month-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            showMonthDetails(username, mi);
+        };
+        
+        container.appendChild(chip);
+    });
+    
+    // Attiva il primo chip
+    const firstChip = container.querySelector('.month-chip');
+    if(firstChip) firstChip.classList.add('active');
+}
+
+function showMonthDetails(username, monthIndex){
+    const timeline = document.getElementById('holidaysTimeline');
+    timeline.innerHTML = '';
+    
+    const m = months[monthIndex];
+    let hasHolidays = false;
+    
+    for(let d = 1; d <= m.d; d++){
+        const key = `${username}-${currentYear}-${monthIndex}-${d}`;
+        const value = dataCache[key] || "";
+        const days = parseDays(value);
+        
+        if(days > 0){
+            hasHolidays = true;
+            
+            const item = document.createElement('div');
+            item.className = 'holiday-item';
+            
+            // Determina tipo
+            let type = '';
+            let icon = '';
+            if(value === '8'){
+                item.classList.add('full-day');
+                type = 'Giornata intera';
+                icon = '🟥';
+            } else if(value.endsWith && value.endsWith('M')){
+                item.classList.add('morning');
+                type = `Mattina (${value})`;
+                icon = '🟦';
+            } else if(value.endsWith && value.endsWith('P')){
+                item.classList.add('afternoon');
+                type = `Pomeriggio (${value})`;
+                icon = '🟪';
+            } else {
+                type = value;
+                icon = '📅';
+            }
+            
+            // Formatta data
+            const date = new Date(currentYear, monthIndex, d);
+            const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][date.getDay()];
+            
+            item.innerHTML = `
+                <span class="holiday-icon">${icon}</span>
+                <span class="holiday-date">${dayName} ${d} ${m.n}</span>
+                <span class="holiday-type">${type}</span>
+            `;
+            
+            timeline.appendChild(item);
+        }
+    }
+    
+    if(!hasHolidays){
+        timeline.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏖️</div>
+                <div>Nessuna feria in ${m.n} ${currentYear}</div>
+            </div>
+        `;
+    }
+}
+
+function exportUserAnalysisPDF(){
+    if(!currentAnalysisUser){
+        alert('Nessun utente selezionato');
+        return;
+    }
+    
+    // TODO: Implementare export PDF dedicato
+    alert(`Export PDF per ${currentAnalysisUser} - In sviluppo`);
 }
 
 // ================= NAVIGATION =================
