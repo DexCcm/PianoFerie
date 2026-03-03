@@ -2,9 +2,13 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" type="image/png" href="holiday.png">
 
 <title>Planner Ferie 2026</title>
+
+<!-- MSAL.js per autenticazione Microsoft -->
+<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -16,12 +20,12 @@
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
   const firebaseConfig = {
-    apiKey: "AIzaSyBupKv4YgQNogpZHgOKkpeuxESev1fP5Ew",
+    apiKey: "XXXXXX",
     authDomain: "planner-ferie.firebaseapp.com",
     projectId: "planner-ferie",
     storageBucket: "planner-ferie.firebasestorage.app",
-    messagingSenderId: "511639574108",
-    appId: "1:511639574108:web:2def4d68d7b12ea09a7899",
+    messagingSenderId: "XXXXX",
+    appId: "1:511639574108:web:2def4d68d7bXXXX12ea09a7899",
     measurementId: "G-VBTS0DWXWM",
     databaseURL: "https://planner-ferie-default-rtdb.europe-west1.firebasedatabase.app/"
   };
@@ -73,6 +77,371 @@
     --header-gradient-start: #1e293b;
     --header-gradient-end: #0f172a;
     --title-blue: #93c5fd;
+}
+
+/* ================= LOGIN PAGE ================= */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.login-box {
+    background: white;
+    border-radius: 20px;
+    padding: 48px;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.login-logo {
+    width: 50%;     /* Più grande */
+    height: 10%;
+    padding: 25px;    /* Aumenta padding di conseguenza */
+    margin: 0 auto 24px;
+    background: #172754;
+    border-radius: 3%;
+    border: 3px solid white;        /* ← Bordo bianco */
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+.login-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #172754;
+    margin-bottom: 12px;
+}
+
+.login-subtitle {
+    font-size: 16px;
+    color: #6b7280;
+    margin-bottom: 32px;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 16px 24px;
+    background: #172754;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: all 0.3s;
+}
+
+.login-btn:hover {
+    background: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.login-error {
+    margin-top: 20px;
+    padding: 12px;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+}
+
+.login-loading {
+    display: none;
+    margin-top: 20px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* ================= USER INFO BAR ================= */
+.user-info-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 999;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 12px 20px;
+    border-bottom-left-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+[data-theme="dark"] .user-info-bar {
+    background: rgba(30, 41, 59, 0.95);
+}
+
+.user-info-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.user-info-role {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.user-info-role.admin {
+    background: #dbeafe;
+    color: #1e3a8a;
+}
+
+.user-info-role.user {
+    background: #f3e8ff;
+    color: #6b21a8;
+}
+
+.logout-btn {
+    padding: 6px 12px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.logout-btn:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+/* ================= RESPONSIVE - MOBILE FIRST ================= */
+@media (max-width: 768px) {
+    /* Login */
+    .login-box {
+        padding: 32px 24px;
+    }
+    
+    .login-logo {
+        width: 90px;
+        height: 50px;
+    }
+    
+    .login-title {
+        font-size: 24px;
+    }
+    
+    /* User info bar */
+    .user-info-bar {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    .user-info-name {
+        display: none; /* Nascondi nome su mobile, solo ruolo */
+    }
+    
+    /* Logo header */
+    .logo-box {
+        padding: 12px 0;
+    }
+    
+    .logo-img {
+        height: 60px;
+    }
+    
+    /* Titolo */
+    h1 {
+        font-size: 20px;
+        margin: 12px 0;
+    }
+    
+    /* Navigazione anno */
+    h1 + div {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .nav-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Tabs viste */
+    .view-mode-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px;
+    }
+    
+    .view-btn {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 100px;
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+    
+    /* Bottone inserisci ferie */
+    .insert-holidays-btn {
+        width: 100%;
+        height: auto;
+        padding: 16px;
+        margin: 16px 0;
+    }
+    
+    /* Stats cards */
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .stat-box {
+        padding: 16px 12px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .stat-label {
+        font-size: 11px;
+    }
+    
+    /* Dashboard row */
+    .dashboard-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    /* Tabella dashboard */
+    .dashboard-table-box,
+    .chart-box {
+        padding: 16px;
+    }
+    
+    #dashboardTable {
+        font-size: 12px;
+    }
+    
+    #dashboardTable th,
+    #dashboardTable td {
+        padding: 8px 4px;
+    }
+    
+    /* Grafico */
+    .chart-box canvas {
+        height: 250px !important;
+    }
+    
+    /* Calendari */
+    .planner-box {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .planner {
+        min-width: 600px;
+        font-size: 10px;
+    }
+    
+    .planner th,
+    .planner td {
+        padding: 4px 2px;
+        min-width: 20px;
+    }
+    
+    .member-name {
+        position: sticky;
+        left: 0;
+        background: var(--bg-secondary);
+        z-index: 2;
+        min-width: 80px !important;
+    }
+    
+    /* Modal */
+    .modal-panel {
+        width: 95vw;
+        max-width: 95vw;
+        padding: 16px;
+    }
+    
+    .modal-title {
+        font-size: 16px;
+    }
+    
+    .hour-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    /* Modal analisi */
+    .user-analysis-modal {
+        padding: 12px;
+    }
+    
+    .user-analysis-header {
+        padding: 16px;
+    }
+    
+    .user-analysis-title h2 {
+        font-size: 20px;
+    }
+    
+    .user-analysis-body {
+        padding: 16px;
+    }
+    
+    .analysis-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .analysis-stat-value {
+        font-size: 24px;
+    }
+    
+    .analysis-chart-container {
+        height: 200px;
+    }
+    
+    .month-selector {
+        gap: 6px;
+    }
+    
+    .month-chip {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+}
+
+/* ================= RESPONSIVE - TABLET ================= */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .stats-row {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .dashboard-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .planner-box {
+        margin-bottom: 20px;
+    }
+    
+    .analysis-stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
 /* ================= BASE ================= */
@@ -1182,6 +1551,40 @@ kbd {
 
 <body>
 
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-container">
+    <div class="login-box">
+        <img src="logo_dataexpert.png" alt="Dataexpert" class="login-logo">
+        <h1 class="login-title">Piano Ferie Area CCM</h1>
+        <p class="login-subtitle">Accedi con il tuo account Microsoft</p>
+        <button id="loginBtn" class="login-btn" onclick="signIn()">
+            <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
+                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+            </svg>
+            Accedi con Microsoft
+        </button>
+        <div id="loginLoading" class="login-loading">
+            Accesso in corso...
+        </div>
+        <div id="loginError" class="login-error">
+            Errore durante l'accesso. Riprova.
+        </div>
+    </div>
+</div>
+
+<!-- USER INFO BAR -->
+<div id="userInfoBar" class="user-info-bar" style="display:none;">
+    <span class="user-info-name" id="userName"></span>
+    <span class="user-info-role" id="userRole"></span>
+    <button class="logout-btn" onclick="signOut()">Esci</button>
+</div>
+
+<!-- APP CONTAINER (nascosto fino al login) -->
+<div id="appContainer" style="display:none;">
+
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay">
     <div class="loading-spinner"></div>
@@ -1489,7 +1892,7 @@ kbd {
 
 <script>
 /* ================= JS CON FIREBASE ================= */
-const users=["Damiano","Gianluca","Gregorio","Leonardo","Samuela","Simone"];
+const users=["Ferrara","Sedda","Viscomi","Carnelli","Angioletti","Fantozzi","Bresciani","Brambilla","Bergu","Fagioli","Martignon","Sabatini","Trevisin","Parini"];
 
 // Dati mesi per anno - festività Italia
 const yearsData = {
@@ -1548,12 +1951,20 @@ const parseDays=v=>parseHours(v)/8;
 
 // Palette colori pastello ben distinti per gli utenti
 const userColors = {
-    "Damiano": { bg: 'rgba(96, 165, 250, 0.75)', border: '#60a5fa', point: '#3b82f6' },     // Blu cielo
-    "Gianluca": { bg: 'rgba(251, 146, 60, 0.75)', border: '#fb923c', point: '#f97316' },   // Arancione
-    "Gregorio": { bg: 'rgba(248, 113, 113, 0.75)', border: '#f87171', point: '#ef4444' },  // Rosso/Rosa
-    "Leonardo": { bg: 'rgba(74, 222, 128, 0.75)', border: '#4ade80', point: '#22c55e' },   // Verde
-    "Samuela": { bg: 'rgba(196, 181, 253, 0.75)', border: '#c4b5fd', point: '#a78bfa' },   // Viola chiaro
-    "Simone": { bg: 'rgba(253, 224, 71, 0.75)', border: '#fde047', point: '#facc15' }      // Giallo
+    "Ferrara": { bg: 'rgba(96, 165, 250, 0.75)', border: '#60a5fa', point: '#3b82f6' },        // Blu cielo
+    "Sedda": { bg: 'rgba(251, 146, 60, 0.75)', border: '#fb923c', point: '#f97316' },         // Arancione
+    "Viscomi": { bg: 'rgba(248, 113, 113, 0.75)', border: '#f87171', point: '#ef4444' },      // Rosso
+    "Carnelli": { bg: 'rgba(74, 222, 128, 0.75)', border: '#4ade80', point: '#22c55e' },      // Verde
+    "Angioletti": { bg: 'rgba(196, 181, 253, 0.75)', border: '#c4b5fd', point: '#a78bfa' },  // Viola
+    "Fantozzi": { bg: 'rgba(253, 224, 71, 0.75)', border: '#fde047', point: '#facc15' },     // Giallo
+    "Bresciani": { bg: 'rgba(244, 114, 182, 0.75)', border: '#f472b6', point: '#ec4899' },   // Rosa
+    "Brambilla": { bg: 'rgba(134, 239, 172, 0.75)', border: '#86efac', point: '#4ade80' },   // Verde lime
+    "Bergu": { bg: 'rgba(147, 197, 253, 0.75)', border: '#93c5fd', point: '#60a5fa' },       // Blu chiaro
+    "Fagioli": { bg: 'rgba(251, 191, 36, 0.75)', border: '#fbbf24', point: '#f59e0b' },      // Ambra
+    "Martignon": { bg: 'rgba(168, 85, 247, 0.75)', border: '#a855f7', point: '#9333ea' },    // Viola scuro
+    "Sabatini": { bg: 'rgba(34, 197, 94, 0.75)', border: '#22c55e', point: '#16a34a' },      // Verde scuro
+    "Trevisin": { bg: 'rgba(239, 68, 68, 0.75)', border: '#ef4444', point: '#dc2626' },      // Rosso scuro
+    "Parini": { bg: 'rgba(59, 130, 246, 0.75)', border: '#3b82f6', point: '#2563eb' }        // Blu
 };
 
 // ================= DARK MODE =================
@@ -2831,6 +3242,187 @@ window.initApp = async function() {
     });
 };
 
+</div>
+<!-- Fine APP CONTAINER -->
+
+<script>
+// ================= AUTENTICAZIONE MICROSOFT (MSAL.js) =================
+
+// Configurazione MSAL
+const msalConfig = {
+    auth: {
+        clientId: "865d7a43-b0b8-4d4b-a718-864386845d2f", // IMPORTANTE: Sostituire con il tuo Client ID da Azure AD
+        authority: "https://login.microsoftonline.com/organizations", // ← Solo account aziendali
+        redirectUri: "https://dexccm.github.io/PianoFerie/" // URL del tuo GitHub Pages
+    },
+    cache: {
+        cacheLocation: "localStorage",
+        storeAuthStateInCookie: false
+    }
+};
+
+// Inizializza MSAL
+const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+// Configurazione utenti con ruoli e email
+const usersConfig = {
+    "Ferrara": { role: "admin", email: "luigi.ferrara@dex.it" },
+    "Sedda": { role: "admin", email: "sedda@company.com" },
+    "Viscomi": { role: "admin", email: "simone.viscomi@dex.it" },
+    "Carnelli": { role: "user", email: "carnelli@company.com" },
+    "Angioletti": { role: "user", email: "angioletti@company.com" },
+    "Fantozzi": { role: "user", email: "fantozzi@company.com" },
+    "Bresciani": { role: "user", email: "bresciani@company.com" },
+    "Brambilla": { role: "user", email: "brambilla@company.com" },
+    "Bergu": { role: "user", email: "bergu@company.com" },
+    "Fagioli": { role: "user", email: "fagioli@company.com" },
+    "Martignon": { role: "user", email: "martignon@company.com" },
+    "Sabatini": { role: "user", email: "sabatini@company.com" },
+    "Trevisin": { role: "user", email: "trevisin@company.com" },
+    "Parini": { role: "user", email: "parini@company.com" }
+};
+
+// Variabili globali utente
+let currentUser = null;
+let currentUserEmail = null;
+let currentUserRole = null;
+
+console.log("CLICK LOGIN");
+// Funzione di login
+async function signIn() {
+    const loginBtn = document.getElementById('loginBtn');
+    const loginLoading = document.getElementById('loginLoading');
+    const loginError = document.getElementById('loginError');
+    
+    loginBtn.disabled = true;
+    loginLoading.style.display = 'block';
+    loginError.style.display = 'none';
+    
+    try {
+        const loginRequest = {
+            scopes: ["user.read"]
+        };
+        
+        const loginResponse = await msalInstance.loginPopup(loginRequest);
+        
+        // Ottieni email dall'account
+        const account = loginResponse.account;
+        const userEmail = account.username.toLowerCase();
+        
+        // Cerca utente nella configurazione
+        let foundUser = null;
+        for (const [userName, userData] of Object.entries(usersConfig)) {
+            if (userData.email.toLowerCase() === userEmail) {
+                foundUser = userName;
+                break;
+            }
+        }
+        
+        if (!foundUser) {
+            throw new Error('Utente non autorizzato');
+        }
+        
+        // Imposta variabili globali
+        currentUser = foundUser;
+        currentUserEmail = userEmail;
+        currentUserRole = usersConfig[foundUser].role;
+        
+        // Salva in sessionStorage
+        sessionStorage.setItem('currentUser', currentUser);
+        sessionStorage.setItem('currentUserRole', currentUserRole);
+        sessionStorage.setItem('msalAccount', JSON.stringify(account));
+        
+        // Mostra app
+        showApp();
+        
+    } catch (error) {
+        console.error('Errore login:', error);
+        loginError.textContent = error.message || 'Errore durante l\'accesso. Riprova.';
+        loginError.style.display = 'block';
+        loginBtn.disabled = false;
+        loginLoading.style.display = 'none';
+    }
+}
+
+// Funzione di logout
+function signOut() {
+    // Logout da MSAL
+    msalInstance.logoutPopup().then(() => {
+        // Pulisci storage
+        sessionStorage.clear();
+        currentUser = null;
+        currentUserEmail = null;
+        currentUserRole = null;
+        
+        // Ricarica pagina
+        window.location.reload();
+    });
+}
+window.signIn = signIn;
+window.signOut = signOut;
+
+// Funzione per mostrare l'app
+function showApp() {
+    // Nascondi login
+    document.getElementById('loginPage').style.display = 'none';
+    
+    // Mostra app
+    document.getElementById('appContainer').style.display = 'block';
+    
+    // Mostra user info bar
+    const userInfoBar = document.getElementById('userInfoBar');
+    userInfoBar.style.display = 'flex';
+    document.getElementById('userName').textContent = currentUser;
+    
+    const roleSpan = document.getElementById('userRole');
+    roleSpan.textContent = currentUserRole;
+    roleSpan.className = 'user-info-role ' + currentUserRole;
+    
+    // Inizializza app
+    if (window.firebaseDB && window.initApp) {
+        window.initApp();
+    }
+    
+    // Applica permessi UI
+    applyUserPermissions();
+}
+
+// Funzione per applicare permessi UI
+function applyUserPermissions() {
+    if (currentUserRole === 'user') {
+        // Nascondere/modificare elementi per user
+        console.log('Applicazione permessi USER per:', currentUser);
+        
+        // Implementeremo i filtri specifici nella FASE 2
+        // Per ora solo log
+    } else {
+        console.log('Permessi ADMIN per:', currentUser);
+    }
+}
+
+
+
+window.addEventListener('DOMContentLoaded', () => {
+    const savedUser = sessionStorage.getItem('currentUser');
+    const savedRole = sessionStorage.getItem('currentUserRole');
+    const savedAccount = sessionStorage.getItem('msalAccount');
+    
+    if (savedUser && savedRole && savedAccount) {
+        // Ripristina sessione
+        currentUser = savedUser;
+        currentUserRole = savedRole;
+        currentUserEmail = JSON.parse(savedAccount).username;
+        
+        // Mostra app
+        showApp();
+    } else {
+        // Mostra login
+        document.getElementById('loginPage').style.display = 'flex';
+    }
+});
+</script>
+
+<script>
 if (window.firebaseDB) {
     window.initApp();
 }
