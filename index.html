@@ -8,7 +8,7 @@
 <title>Planner Ferie 2026</title>
 
 <!-- MSAL.js per autenticazione Microsoft -->
-<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+<script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -1557,7 +1557,7 @@ kbd {
         <img src="logo_dataexpert.png" alt="Dataexpert" class="login-logo">
         <h1 class="login-title">Piano Ferie Area CCM</h1>
         <p class="login-subtitle">Accedi con il tuo account Microsoft</p>
-        <button id="loginBtn" class="login-btn" onclick="signIn()">
+        <button id="loginBtn" class="login-btn">
             <svg width="21" height="21" viewBox="0 0 21 21" fill="none">
                 <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
                 <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
@@ -3242,6 +3242,7 @@ window.initApp = async function() {
     });
 };
 
+</script>
 </div>
 <!-- Fine APP CONTAINER -->
 
@@ -3253,7 +3254,8 @@ const msalConfig = {
     auth: {
         clientId: "865d7a43-b0b8-4d4b-a718-864386845d2f", // IMPORTANTE: Sostituire con il tuo Client ID da Azure AD
         authority: "https://login.microsoftonline.com/organizations", // ← Solo account aziendali
-        redirectUri: "https://dexccm.github.io/PianoFerie/" // URL del tuo GitHub Pages
+        redirectUri: "https://dexccm.github.io/PianoFerie/", // URL del tuo GitHub Pages
+        navigateToLoginRequestUrl: false
     },
     cache: {
         cacheLocation: "localStorage",
@@ -3261,8 +3263,130 @@ const msalConfig = {
     }
 };
 
-// Inizializza MSAL
-const msalInstance = new msal.PublicClientApplication(msalConfig);
+/**
+ * Setup login:
+ * - assicura che MSAL sia caricato
+ * - inizializza msalInstance
+ * - aggancia il click del bottone login via JS (evita problemi di scope con onclick inline)
+ */
+function initLogin() {
+    const loginBtn = document.getElementById('loginBtn');
+    const loginError = document.getElementById('loginError');
+    const loginLoading = document.getElementById('loginLoading');
+
+    // Se gli elementi non ci sono (pagina diversa), esci
+    if (!loginBtn) return;
+
+    // Stato iniziale UI
+    if (loginLoading) loginLoading.style.display = 'none';
+    if (loginError) loginError.style.display = 'none';
+
+    // Aggancia handler click (sempre)
+    loginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        signIn();
+    });
+
+    // Verifica libreria MSAL
+    if (!window.msal || !window.msal.PublicClientApplication) {
+        console.error('MSAL non caricato: msal-browser.min.js non disponibile.');
+        if (loginError) {
+            loginError.textContent = 'Errore: libreria di autenticazione non caricata. Ricarica la pagina o verifica la rete.';
+            loginError.style.display = 'block';
+        }
+        return;
+    }
+
+    // Inizializza MSAL in modo protetto
+    try {
+        msalInstance = new msal.PublicClientApplication(msalConfig);
+        // Consuma eventuale ritorno da loginRedirect e, se già loggato, mostra la landing.
+        processRedirect();
+    } catch (err) {
+        console.error('Errore inizializzazione MSAL:', err);
+        if (loginError) {
+            loginError.textContent = 'Errore inizializzazione login. Controlla la configurazione MSAL (clientId/redirectUri).';
+            loginError.style.display = 'block';
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initLogin);
+
+// Inizializza MSAL (inizializzazione sicura dopo il caricamento di MSAL)
+let msalInstance = null;
+
+/**
+ * Applica l'account MSAL alla logica applicativa (mappa email -> utente autorizzato),
+ * salva la sessione e mostra l'app.
+ */
+function applyAccount(account) {
+    if (!account || !account.username) throw new Error('Account MSAL non valido');
+
+    const userEmail = account.username.toLowerCase();
+
+    // Cerca utente nella configurazione
+    let foundUser = null;
+    for (const [userName, userData] of Object.entries(usersConfig)) {
+        if ((userData.email || '').toLowerCase() === userEmail) {
+            foundUser = userName;
+            break;
+        }
+    }
+
+    if (!foundUser) {
+        throw new Error('Utente non autorizzato');
+    }
+
+    currentUser = foundUser;
+    currentUserEmail = userEmail;
+    currentUserRole = usersConfig[foundUser].role;
+
+    // Salva in sessionStorage
+    sessionStorage.setItem('currentUser', currentUser);
+    sessionStorage.setItem('currentUserRole', currentUserRole);
+    sessionStorage.setItem('msalAccount', JSON.stringify(account));
+
+    showApp();
+}
+
+/**
+ * Gestisce il ritorno da loginRedirect (consuma #code=... e imposta l'utente).
+ * Va chiamata all'avvio, subito dopo aver creato msalInstance.
+ */
+async function processRedirect() {
+    const loginError = document.getElementById('loginError');
+    try {
+        const result = await msalInstance.handleRedirectPromise();
+
+        // Se è appena rientrato dal redirect, usa quell'account
+        if (result && result.account) {
+            msalInstance.setActiveAccount(result.account);
+        }
+
+        // Se c'è già un account in cache (utente già loggato)
+        const accounts = msalInstance.getAllAccounts();
+        const active = msalInstance.getActiveAccount() || (accounts.length ? accounts[0] : null);
+
+        if (active) {
+            msalInstance.setActiveAccount(active);
+            applyAccount(active);
+
+            // Pulisci l'hash dall'URL (toglie #code=...)
+            if (window.location.hash && window.location.hash.includes('code=')) {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        }
+    } catch (err) {
+        console.error('Errore processRedirect:', err);
+        if (loginError) {
+            loginError.textContent = err.message || 'Errore durante la gestione del login.';
+            loginError.style.display = 'block';
+        }
+    }
+}
+
+
 
 // Configurazione utenti con ruoli e email
 const usersConfig = {
@@ -3287,60 +3411,41 @@ let currentUser = null;
 let currentUserEmail = null;
 let currentUserRole = null;
 
-console.log("CLICK LOGIN");
 // Funzione di login
 async function signIn() {
+    if (!msalInstance) {
+        const loginError = document.getElementById('loginError');
+        if (loginError) {
+            loginError.textContent = 'Login non pronto: MSAL non inizializzato. Ricarica la pagina.';
+            loginError.style.display = 'block';
+        }
+        console.error('msalInstance non inizializzato');
+        return;
+    }
+
     const loginBtn = document.getElementById('loginBtn');
     const loginLoading = document.getElementById('loginLoading');
     const loginError = document.getElementById('loginError');
-    
-    loginBtn.disabled = true;
-    loginLoading.style.display = 'block';
-    loginError.style.display = 'none';
-    
+
+    if (loginBtn) loginBtn.disabled = true;
+    if (loginLoading) loginLoading.style.display = 'block';
+    if (loginError) loginError.style.display = 'none';
+
     try {
-        const loginRequest = {
-            scopes: ["user.read"]
-        };
-        
-        const loginResponse = await msalInstance.loginPopup(loginRequest);
-        
-        // Ottieni email dall'account
-        const account = loginResponse.account;
-        const userEmail = account.username.toLowerCase();
-        
-        // Cerca utente nella configurazione
-        let foundUser = null;
-        for (const [userName, userData] of Object.entries(usersConfig)) {
-            if (userData.email.toLowerCase() === userEmail) {
-                foundUser = userName;
-                break;
-            }
-        }
-        
-        if (!foundUser) {
-            throw new Error('Utente non autorizzato');
-        }
-        
-        // Imposta variabili globali
-        currentUser = foundUser;
-        currentUserEmail = userEmail;
-        currentUserRole = usersConfig[foundUser].role;
-        
-        // Salva in sessionStorage
-        sessionStorage.setItem('currentUser', currentUser);
-        sessionStorage.setItem('currentUserRole', currentUserRole);
-        sessionStorage.setItem('msalAccount', JSON.stringify(account));
-        
-        // Mostra app
-        showApp();
-        
+        const loginRequest = { scopes: ["user.read"] };
+
+        // ✅ Redirect flow: niente popup finale, torni sulla STESSA pagina.
+        await msalInstance.loginRedirect(loginRequest);
+
+        // Nota: il codice sotto non viene eseguito perché la pagina verrà rediretta.
     } catch (error) {
         console.error('Errore login:', error);
-        loginError.textContent = error.message || 'Errore durante l\'accesso. Riprova.';
-        loginError.style.display = 'block';
-        loginBtn.disabled = false;
-        loginLoading.style.display = 'none';
+        if (loginError) {
+            loginError.textContent = error.message || 'Errore durante l\'accesso. Riprova.';
+            loginError.style.display = 'block';
+        }
+        if (loginBtn) loginBtn.disabled = false;
+        if (loginLoading) loginLoading.style.display = 'none';
     }
 }
 
@@ -3358,8 +3463,6 @@ function signOut() {
         window.location.reload();
     });
 }
-window.signIn = signIn;
-window.signOut = signOut;
 
 // Funzione per mostrare l'app
 function showApp() {
@@ -3420,6 +3523,10 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('loginPage').style.display = 'flex';
     }
 });
+
+// Espone funzioni per eventuali riferimenti esterni (fallback)
+window.signIn = signIn;
+window.signOut = typeof signOut === 'function' ? signOut : undefined;
 </script>
 
 <script>
