@@ -3320,24 +3320,132 @@ let msalInstance = null;
  * Applica l'account MSAL alla logica applicativa (mappa email -> utente autorizzato),
  * salva la sessione e mostra l'app.
  */
+/**
+ * Applica l'account MSAL alla logica applicativa (mappa email -> utente autorizzato),
+ * salva la sessione e mostra l'app.
+ * VERSIONE CON DEBUG AVANZATO
+ */
 function applyAccount(account) {
-    if (!account || !account.username) throw new Error('Account MSAL non valido');
+    // ===== LOG INIZIALE GARANTITO =====
+    console.log('═══════════════════════════════════════════════════');
+    console.log('🚀 INIZIO APPLYACCOUNT');
+    console.log('═══════════════════════════════════════════════════');
+    
+    // ===== STEP 1: Verifica account valido =====
+    console.log('STEP 1: Verifica account...');
+    if (!account) {
+        console.error('❌ Account MSAL è nullo o undefined!');
+        console.error('Valore ricevuto:', account);
+        throw new Error('Account MSAL non valido - account è null/undefined');
+    }
+    console.log('✅ Account ricevuto non è null');
 
-    const userEmail = account.username.toLowerCase();
+    console.log('📦 ACCOUNT COMPLETO RICEVUTO DA MSAL:');
+    console.log(account);
+    console.log('Tipo:', typeof account);
+    console.log('Keys:', Object.keys(account || {}));
 
-    // Cerca utente nella configurazione
+    // ===== STEP 2: Estrai email da vari campi possibili =====
+    console.log('');
+    console.log('STEP 2: Estrazione email...');
+    console.log('🔍 DEBUG - Campi account disponibili:');
+    console.log('   account.username:', account.username);
+    console.log('   account.email:', account.email);
+    console.log('   account.preferredUsername:', account.preferredUsername);
+    console.log('   account.upn:', account.upn);
+    console.log('   account.name:', account.name);
+    
+    const userEmail = (
+        account.username || 
+        account.email || 
+        account.preferredUsername || 
+        account.upn ||
+        account.name || 
+        ''
+    ).toLowerCase().trim();
+
+    console.log('');
+    console.log('📧 Email estratta finale:', userEmail);
+    console.log('📧 Lunghezza email:', userEmail.length);
+
+    // ===== STEP 3: Verifica che abbiamo un'email =====
+    console.log('');
+    console.log('STEP 3: Verifica email valida...');
+    if (!userEmail || userEmail.length === 0) {
+        console.error('❌ Nessuna email trovata nell\'account MSAL');
+        console.error('Tutti i campi erano vuoti o undefined');
+        alert('Errore: Non è stato possibile estrarre l\'email dal tuo account Microsoft.\n\nApri la Console (F12) per i dettagli.');
+        throw new Error('Email non trovata nell\'account MSAL');
+    }
+    console.log('✅ Email valida trovata');
+
+    // ===== STEP 4: Cerca utente nella configurazione =====
+    console.log('');
+    console.log('STEP 4: Ricerca in usersConfig...');
+    console.log('🔎 Cerco corrispondenza per email:', userEmail);
+    console.log('📋 Email configurate in usersConfig:');
+    
+    Object.entries(usersConfig).forEach(([user, data]) => {
+        console.log(`   ${user}: ${data.email}`);
+    });
+
+    console.log('');
+    console.log('🔄 Inizio confronti...');
     let foundUser = null;
     for (const [userName, userData] of Object.entries(usersConfig)) {
-        if ((userData.email || '').toLowerCase() === userEmail) {
+        const configEmail = (userData.email || '').toLowerCase().trim();
+        const match = configEmail === userEmail;
+        console.log(`   "${userEmail}" === "${configEmail}" ? ${match} (${userName})`);
+        
+        if (match) {
             foundUser = userName;
+            console.log(`   ✅ MATCH TROVATO: ${userName}`);
             break;
         }
     }
 
+    // ===== STEP 5: Gestisci risultato ricerca =====
+    console.log('');
+    console.log('STEP 5: Verifica risultato...');
     if (!foundUser) {
+        console.error('═══════════════════════════════════════════════════');
+        console.error('❌ EMAIL NON TROVATA IN USERSCONFIG');
+        console.error('═══════════════════════════════════════════════════');
+        console.error('Email che hai usato per loggarti:', userEmail);
+        console.error('');
+        console.error('Email configurate in usersConfig:');
+        Object.entries(usersConfig).forEach(([user, data]) => {
+            console.error(`   ${user}: ${data.email}`);
+        });
+        console.error('═══════════════════════════════════════════════════');
+
+        // Alert dettagliato per l'utente
+        const configuredEmails = Object.entries(usersConfig)
+            .map(([user, data]) => `  • ${user}: ${data.email}`)
+            .join('\n');
+
+        alert(
+            `❌ UTENTE NON AUTORIZZATO\n\n` +
+            `Email con cui hai fatto login:\n${userEmail}\n\n` +
+            `Questa email NON è presente in usersConfig.\n\n` +
+            `Email configurate:\n${configuredEmails}\n\n` +
+            `Controlla la Console (F12) per maggiori dettagli.`
+        );
+
         throw new Error('Utente non autorizzato');
     }
 
+    // ===== STEP 6: Login riuscito! =====
+    console.log('');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('✅ ✅ ✅ LOGIN RIUSCITO! ✅ ✅ ✅');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('👤 Utente:', foundUser);
+    console.log('🔐 Ruolo:', usersConfig[foundUser].role);
+    console.log('📧 Email:', userEmail);
+    console.log('═══════════════════════════════════════════════════');
+
+    // Imposta variabili globali
     currentUser = foundUser;
     currentUserEmail = userEmail;
     currentUserRole = usersConfig[foundUser].role;
@@ -3347,6 +3455,10 @@ function applyAccount(account) {
     sessionStorage.setItem('currentUserRole', currentUserRole);
     sessionStorage.setItem('msalAccount', JSON.stringify(account));
 
+    console.log('💾 Dati salvati in sessionStorage');
+    console.log('🎉 Chiamata showApp()...');
+
+    // Mostra app
     showApp();
 }
 
@@ -3354,35 +3466,70 @@ function applyAccount(account) {
  * Gestisce il ritorno da loginRedirect (consuma #code=... e imposta l'utente).
  * Va chiamata all'avvio, subito dopo aver creato msalInstance.
  */
+/**
+ * Gestisce il ritorno da loginRedirect (consuma #code=... e imposta l'utente).
+ * Va chiamata all'avvio, subito dopo aver creato msalInstance.
+ * VERSIONE CON DEBUG COMPLETO
+ */
 async function processRedirect() {
+    console.log('🔄 Inizio processRedirect...');
     const loginError = document.getElementById('loginError');
+    
     try {
+        console.log('⏳ Chiamata handleRedirectPromise...');
         const result = await msalInstance.handleRedirectPromise();
+        console.log('📥 Risultato handleRedirectPromise:', result);
 
         // Se è appena rientrato dal redirect, usa quell'account
         if (result && result.account) {
+            console.log('✅ Account dal redirect trovato:', result.account);
             msalInstance.setActiveAccount(result.account);
         }
 
         // Se c'è già un account in cache (utente già loggato)
+        console.log('🔍 Controllo account in cache...');
         const accounts = msalInstance.getAllAccounts();
+        console.log('📋 Account totali in cache:', accounts.length);
+        
         const active = msalInstance.getActiveAccount() || (accounts.length ? accounts[0] : null);
+        console.log('👤 Account attivo selezionato:', active);
 
         if (active) {
+            console.log('➡️ Chiamata applyAccount con account:', active);
             msalInstance.setActiveAccount(active);
-            applyAccount(active);
+            
+            try {
+                applyAccount(active);
+            } catch (applyErr) {
+                console.error('❌ ERRORE in applyAccount:', applyErr);
+                console.error('📦 Account che ha causato l\'errore:', active);
+                throw applyErr; // Rilancia per il catch esterno
+            }
 
             // Pulisci l'hash dall'URL (toglie #code=...)
             if (window.location.hash && window.location.hash.includes('code=')) {
+                console.log('🧹 Pulizia hash URL...');
                 history.replaceState(null, '', window.location.pathname + window.location.search);
             }
+        } else {
+            console.log('ℹ️ Nessun account attivo trovato - mostra pagina login');
         }
     } catch (err) {
-        console.error('Errore processRedirect:', err);
+        console.error('❌❌❌ ERRORE PROCESSREDIRECT ❌❌❌');
+        console.error('Tipo errore:', err.name);
+        console.error('Messaggio:', err.message);
+        console.error('Stack:', err.stack);
+        
         if (loginError) {
             loginError.textContent = err.message || 'Errore durante la gestione del login.';
             loginError.style.display = 'block';
         }
+        
+        // Mostra anche pagina login se errore
+        const loginPage = document.getElementById('loginPage');
+        const appContainer = document.getElementById('appContainer');
+        if (loginPage) loginPage.style.display = 'flex';
+        if (appContainer) appContainer.style.display = 'none';
     }
 }
 
