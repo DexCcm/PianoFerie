@@ -18,8 +18,8 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
-
- const firebaseConfig = {
+ 
+  const firebaseConfig = {
     apiKey: "AIzaSyBupKv4YgQNogpZHgOKkpeuxESev1fP5Ew",
     authDomain: "planner-ferie.firebaseapp.com",
     projectId: "planner-ferie",
@@ -2382,9 +2382,7 @@ function renderPlanner(){
         }
         html+=`</tr></thead><tbody>`;
 
-        const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
-
-        visibleUsers.forEach(u=>{
+        users.forEach(u=>{
             const canEditRow = (currentUserRole !== 'user' || u === currentUser);
 
             html+=`<tr><td class="member-name">${u}</td>`;
