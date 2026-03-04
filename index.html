@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" type="image/png" href="holiday.png">
 
-<title>Piano Ferie 2026</title>
+<title>Planner Ferie 2026</title>
 
 <!-- MSAL.js per autenticazione Microsoft -->
 <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
@@ -20,12 +20,12 @@
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
   const firebaseConfig = {
-    apiKey: "XXXXXX",
+    apiKey: "AIzaSyBupKv4YgQNogpZHgOKkpeuxESev1fP5Ew",
     authDomain: "planner-ferie.firebaseapp.com",
     projectId: "planner-ferie",
     storageBucket: "planner-ferie.firebasestorage.app",
-    messagingSenderId: "XXXXX",
-    appId: "1:511639574108:web:2def4d68d7bXXXX12ea09a7899",
+    messagingSenderId: "511639574108",
+    appId: "1:511639574108:web:2def4d68d7b12ea09a7899",
     measurementId: "G-VBTS0DWXWM",
     databaseURL: "https://planner-ferie-default-rtdb.europe-west1.firebasedatabase.app/"
   };
@@ -1905,9 +1905,9 @@ kbd {
 
 <script>
 /* ================= JS CON FIREBASE ================= */
-let currentUser=null;
-let currentUserEmail=null;
-let currentUserRole=null;
+var currentUser=null;
+var currentUserEmail=null;
+var currentUserRole=null;
 
 const users=["Ferrara","Sedda","Viscomi","Carnelli","Angioletti","Fantozzi","Bresciani","Brambilla","Bergu","Fagioli","Martignon","Sabatini","Trevisin","Parini"];
 
@@ -3624,9 +3624,9 @@ const usersConfig = {
 };
 
 // Variabili globali utente
-let currentUser = null;
-let currentUserEmail = null;
-let currentUserRole = null;
+currentUser = null;
+currentUserEmail = null;
+currentUserRole = null;
 
 // Funzione di login
 async function signIn() {
@@ -3713,7 +3713,7 @@ function showApp() {
         window.initApp();
     }
 }
-
+}
 
 // Funzione per applicare permessi UI
 function applyUserPermissions() {
