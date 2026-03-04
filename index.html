@@ -1568,6 +1568,97 @@ body.user-mode #dashboardTable th{
     padding-bottom: 16px;
 }
 
+/* ================= VERSION BADGE ================= */
+.version-badge {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 998;
+    font-size: 11px;
+    font-weight: 600;
+    color: #6b7280;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .version-badge {
+    background: rgba(30, 41, 59, 0.9);
+    color: #94a3b8;
+    border-color: #334155;
+}
+
+@media (max-width: 768px) {
+    .version-badge {
+        font-size: 9px;
+        padding: 3px 8px;
+        top: 8px;
+        left: 8px;
+    }
+}
+
+/* ================= USER ROW HIGHLIGHT ================= */
+.user-own-row {
+    background: rgba(59, 130, 246, 0.06) !important;
+}
+
+[data-theme="dark"] .user-own-row {
+    background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.user-own-row td {
+    background: rgba(59, 130, 246, 0.06) !important;
+}
+
+[data-theme="dark"] .user-own-row td {
+    background: rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Cursore not-allowed su celle altri utenti per USER */
+.user-not-editable-cell {
+    cursor: not-allowed !important;
+}
+
+/* ================= DASHBOARD GIF ================= */
+.dashboard-gif-container {
+    margin-top: 20px;
+    text-align: center;
+    padding: 15px;
+}
+
+.dashboard-gif {
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 240px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    opacity: 0.92;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.dashboard-gif:hover {
+    opacity: 1;
+    transform: scale(1.02);
+}
+
+@media (max-width: 768px) {
+    .dashboard-gif {
+        max-height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-gif {
+        max-height: 120px;
+    }
+}
+
 </style>
 </head>
 
@@ -1606,6 +1697,9 @@ body.user-mode #dashboardTable th{
 
 <!-- APP CONTAINER (nascosto fino al login) -->
 <div id="appContainer" style="display:none;">
+
+<!-- Version Badge -->
+<div class="version-badge">v1.0.0</div>
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay">
@@ -1724,6 +1818,10 @@ body.user-mode #dashboardTable th{
                 </thead>
                 <tbody></tbody>
             </table>
+            <!-- GIF Gatta (solo per Viscomi) -->
+            <div id="dashboardGifContainer" class="dashboard-gif-container" style="display:none;">
+                <img src="gatta.gif" alt="Gatta" class="dashboard-gif">
+            </div>
         </div>
 
         <div class="chart-box">
@@ -2394,8 +2492,11 @@ function renderPlanner(){
 
         window.usersList.forEach(u=>{
             const canEditRow = (currentUserRole !== 'user' || u === currentUser);
+            
+            // Classe per evidenziare riga utente corrente se è USER
+            const rowClass = (currentUserRole === 'user' && u === currentUser) ? ' class="user-own-row"' : '';
 
-            html+=`<tr><td class="member-name">${u}</td>`;
+            html+=`<tr${rowClass}><td class="member-name">${u}</td>`;
             for(let d=1;d<=m.d;d++){
                 const wd=new Date(currentYear,mi,d).getDay();
                 const key=`${u}-${currentYear}-${mi}-${d}`;
@@ -2419,7 +2520,8 @@ function renderPlanner(){
                     if(canEditRow){
                         html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}">${displayValue}</td>`;
                     } else {
-                        html+=`<td class="${cls.replace('editable','').trim()}" data-key="${key}">${displayValue}</td>`;
+                        // Celle non editabili per USER su altri utenti
+                        html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}">${displayValue}</td>`;
                     }
                 }
                 // Altri giorni: ferie normali
@@ -2431,7 +2533,8 @@ function renderPlanner(){
                     if(canEditRow){
                     html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}">${v}</td>`;
                 } else {
-                    html+=`<td class="${cls.replace('editable','').trim()}" data-key="${key}">${v}</td>`;
+                    // Celle non editabili per USER su altri utenti
+                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}">${v}</td>`;
                 }
                 }
             }
@@ -3397,38 +3500,14 @@ let msalInstance = null;
 /**
  * Applica l'account MSAL alla logica applicativa (mappa email -> utente autorizzato),
  * salva la sessione e mostra l'app.
- * VERSIONE CON DEBUG AVANZATO
  */
 function applyAccount(account) {
-    // ===== LOG INIZIALE GARANTITO =====
-    console.log('═══════════════════════════════════════════════════');
-    console.log('🚀 INIZIO APPLYACCOUNT');
-    console.log('═══════════════════════════════════════════════════');
-    
-    // ===== STEP 1: Verifica account valido =====
-    console.log('STEP 1: Verifica account...');
     if (!account) {
-        console.error('❌ Account MSAL è nullo o undefined!');
-        console.error('Valore ricevuto:', account);
+        console.error('Account MSAL non valido');
         throw new Error('Account MSAL non valido - account è null/undefined');
     }
-    console.log('✅ Account ricevuto non è null');
 
-    console.log('📦 ACCOUNT COMPLETO RICEVUTO DA MSAL:');
-    console.log(account);
-    console.log('Tipo:', typeof account);
-    console.log('Keys:', Object.keys(account || {}));
-
-    // ===== STEP 2: Estrai email da vari campi possibili =====
-    console.log('');
-    console.log('STEP 2: Estrazione email...');
-    console.log('🔍 DEBUG - Campi account disponibili:');
-    console.log('   account.username:', account.username);
-    console.log('   account.email:', account.email);
-    console.log('   account.preferredUsername:', account.preferredUsername);
-    console.log('   account.upn:', account.upn);
-    console.log('   account.name:', account.name);
-    
+    // Estrai email da vari campi possibili
     const userEmail = (
         account.username || 
         account.email || 
@@ -3438,86 +3517,39 @@ function applyAccount(account) {
         ''
     ).toLowerCase().trim();
 
-    console.log('');
-    console.log('📧 Email estratta finale:', userEmail);
-    console.log('📧 Lunghezza email:', userEmail.length);
-
-    // ===== STEP 3: Verifica che abbiamo un'email =====
-    console.log('');
-    console.log('STEP 3: Verifica email valida...');
     if (!userEmail || userEmail.length === 0) {
-        console.error('❌ Nessuna email trovata nell\'account MSAL');
-        console.error('Tutti i campi erano vuoti o undefined');
-        alert('Errore: Non è stato possibile estrarre l\'email dal tuo account Microsoft.\n\nApri la Console (F12) per i dettagli.');
+        console.error('Email non trovata nell\'account MSAL');
+        alert('Errore: Non è stato possibile estrarre l\'email dal tuo account Microsoft.');
         throw new Error('Email non trovata nell\'account MSAL');
     }
-    console.log('✅ Email valida trovata');
 
-    // ===== STEP 4: Cerca utente nella configurazione =====
-    console.log('');
-    console.log('STEP 4: Ricerca in usersConfig...');
-    console.log('🔎 Cerco corrispondenza per email:', userEmail);
-    console.log('📋 Email configurate in usersConfig:');
-    
-    Object.entries(usersConfig).forEach(([user, data]) => {
-        console.log(`   ${user}: ${data.email}`);
-    });
-
-    console.log('');
-    console.log('🔄 Inizio confronti...');
+    // Cerca utente nella configurazione
     let foundUser = null;
     for (const [userName, userData] of Object.entries(usersConfig)) {
         const configEmail = (userData.email || '').toLowerCase().trim();
-        const match = configEmail === userEmail;
-        console.log(`   "${userEmail}" === "${configEmail}" ? ${match} (${userName})`);
-        
-        if (match) {
+        if (configEmail === userEmail) {
             foundUser = userName;
-            console.log(`   ✅ MATCH TROVATO: ${userName}`);
             break;
         }
     }
 
-    // ===== STEP 5: Gestisci risultato ricerca =====
-    console.log('');
-    console.log('STEP 5: Verifica risultato...');
     if (!foundUser) {
-        console.error('═══════════════════════════════════════════════════');
-        console.error('❌ EMAIL NON TROVATA IN USERSCONFIG');
-        console.error('═══════════════════════════════════════════════════');
-        console.error('Email che hai usato per loggarti:', userEmail);
-        console.error('');
-        console.error('Email configurate in usersConfig:');
-        Object.entries(usersConfig).forEach(([user, data]) => {
-            console.error(`   ${user}: ${data.email}`);
-        });
-        console.error('═══════════════════════════════════════════════════');
-
-        // Alert dettagliato per l'utente
+        console.error('Email non autorizzata:', userEmail);
         const configuredEmails = Object.entries(usersConfig)
             .map(([user, data]) => `  • ${user}: ${data.email}`)
             .join('\n');
 
         alert(
             `❌ UTENTE NON AUTORIZZATO\n\n` +
-            `Email con cui hai fatto login:\n${userEmail}\n\n` +
-            `Questa email NON è presente in usersConfig.\n\n` +
-            `Email configurate:\n${configuredEmails}\n\n` +
-            `Controlla la Console (F12) per maggiori dettagli.`
+            `Email: ${userEmail}\n\n` +
+            `Email configurate:\n${configuredEmails}`
         );
 
         throw new Error('Utente non autorizzato');
     }
 
-    // ===== STEP 6: Login riuscito! =====
-    console.log('');
-    console.log('═══════════════════════════════════════════════════');
-    console.log('✅ ✅ ✅ LOGIN RIUSCITO! ✅ ✅ ✅');
-    console.log('═══════════════════════════════════════════════════');
-    console.log('👤 Utente:', foundUser);
-    console.log('🔐 Ruolo:', usersConfig[foundUser].role);
-    console.log('📧 Email:', userEmail);
-    console.log('═══════════════════════════════════════════════════');
+    // Login riuscito
+    console.log(`Login: ${foundUser} (${usersConfig[foundUser].role})`);
 
     // Imposta variabili globali
     currentUser = foundUser;
@@ -3528,9 +3560,6 @@ function applyAccount(account) {
     sessionStorage.setItem('currentUser', currentUser);
     sessionStorage.setItem('currentUserRole', currentUserRole);
     sessionStorage.setItem('msalAccount', JSON.stringify(account));
-
-    console.log('💾 Dati salvati in sessionStorage');
-    console.log('🎉 Chiamata showApp()...');
 
     // Mostra app
     showApp();
@@ -3543,56 +3572,39 @@ function applyAccount(account) {
 /**
  * Gestisce il ritorno da loginRedirect (consuma #code=... e imposta l'utente).
  * Va chiamata all'avvio, subito dopo aver creato msalInstance.
- * VERSIONE CON DEBUG COMPLETO
  */
 async function processRedirect() {
-    console.log('🔄 Inizio processRedirect...');
     const loginError = document.getElementById('loginError');
     
     try {
-        console.log('⏳ Chiamata handleRedirectPromise...');
         const result = await msalInstance.handleRedirectPromise();
-        console.log('📥 Risultato handleRedirectPromise:', result);
 
         // Se è appena rientrato dal redirect, usa quell'account
         if (result && result.account) {
-            console.log('✅ Account dal redirect trovato:', result.account);
             msalInstance.setActiveAccount(result.account);
         }
 
         // Se c'è già un account in cache (utente già loggato)
-        console.log('🔍 Controllo account in cache...');
         const accounts = msalInstance.getAllAccounts();
-        console.log('📋 Account totali in cache:', accounts.length);
-        
         const active = msalInstance.getActiveAccount() || (accounts.length ? accounts[0] : null);
-        console.log('👤 Account attivo selezionato:', active);
 
         if (active) {
-            console.log('➡️ Chiamata applyAccount con account:', active);
             msalInstance.setActiveAccount(active);
             
             try {
                 applyAccount(active);
             } catch (applyErr) {
-                console.error('❌ ERRORE in applyAccount:', applyErr);
-                console.error('📦 Account che ha causato l\'errore:', active);
-                throw applyErr; // Rilancia per il catch esterno
+                console.error('Errore autenticazione:', applyErr.message);
+                throw applyErr;
             }
 
             // Pulisci l'hash dall'URL (toglie #code=...)
             if (window.location.hash && window.location.hash.includes('code=')) {
-                console.log('🧹 Pulizia hash URL...');
                 history.replaceState(null, '', window.location.pathname + window.location.search);
             }
-        } else {
-            console.log('ℹ️ Nessun account attivo trovato - mostra pagina login');
         }
     } catch (err) {
-        console.error('❌❌❌ ERRORE PROCESSREDIRECT ❌❌❌');
-        console.error('Tipo errore:', err.name);
-        console.error('Messaggio:', err.message);
-        console.error('Stack:', err.stack);
+        console.error('Errore processo redirect:', err.message);
         
         if (loginError) {
             loginError.textContent = err.message || 'Errore durante la gestione del login.';
@@ -3702,17 +3714,12 @@ function showApp() {
     roleSpan.textContent = currentUserRole;
     roleSpan.className = 'user-info-role ' + currentUserRole;
     
-    // *** SETUP PERMESSI PRIMA DI INIZIALIZZARE ***
-    // Imposta activeFilters in base al ruolo PRIMA che render() venga chiamato
+    // Setup permessi prima di inizializzare
     if (currentUserRole === 'user') {
         activeFilters = new Set([currentUser]);
-        console.log('🔧 Pre-setup: Filtri grafico impostati su', currentUser);
-    } else {
-        // Admin può vedere tutti di default
-        console.log('🔧 Pre-setup: Permessi admin - tutti i filtri disponibili');
     }
     
-    // Inizializza app (che chiamerà render() con activeFilters già impostato)
+    // Inizializza app
     if (window.firebaseDB && window.initApp) {
         window.initApp();
     }
@@ -3722,17 +3729,8 @@ function showApp() {
 function applyUserPermissions() {
     const isUser = currentUserRole === 'user';
 
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🔐 APPLICAZIONE PERMESSI UI');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('👤 Utente:', currentUser);
-    console.log('🔑 Ruolo:', currentUserRole);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
     if (isUser) {
-        console.log('✅ MODALITÀ USER ATTIVATA');
-        console.log('');
-
+        console.log(`Permessi USER: ${currentUser}`);
 
         // 0. Classe body per stile dedicato USER
         document.body.classList.add('user-mode');
@@ -3740,40 +3738,28 @@ function applyUserPermissions() {
         // 0b. Nascondi card "Utente con Più Ferie"
         const topUserCard = document.getElementById('topUserCard');
         if (topUserCard) topUserCard.style.display = 'none';
+        
         // 1. Nascondi filtri grafico
         const chartFilters = document.getElementById('chartFilters');
         if (chartFilters) {
             chartFilters.style.display = 'none';
-            console.log('   ✓ Filtri grafico nascosti');
         }
 
         // 2. Nascondi bottone "Inserisci Ferie"
         const insertBtn = document.getElementById('insertHolidaysBtn');
         if (insertBtn) {
             insertBtn.style.display = 'none';
-            console.log('   ✓ Bottone "Inserisci Ferie" nascosto');
         }
 
         // 3. Chiudi analisi se aperta su altro utente
         if (typeof currentAnalysisUser !== 'undefined' && currentAnalysisUser && currentAnalysisUser !== currentUser) {
             try { 
                 closeUserAnalysis(); 
-                console.log('   ✓ Analisi altro utente chiusa');
             } catch(e) {}
         }
         
-        console.log('');
-        console.log('📊 RESTRIZIONI APPLICATE:');
-        console.log('   → Dashboard: solo', currentUser);
-        console.log('   → Statistiche: solo dati personali');
-        console.log('   → Grafico: solo propria linea');
-        console.log('   → Modifiche: solo proprie celle');
-        console.log('   → Analisi: solo propria');
-        
     } else {
-        console.log('✅ MODALITÀ ADMIN ATTIVATA');
-        console.log('');
-
+        console.log(`Permessi ADMIN: ${currentUser}`);
 
         // 0. Rimuovi classe body USER
         document.body.classList.remove('user-mode');
@@ -3781,30 +3767,30 @@ function applyUserPermissions() {
         // 0b. Ripristina card "Utente con Più Ferie"
         const topUserCard = document.getElementById('topUserCard');
         if (topUserCard) topUserCard.style.display = '';
+        
         // Ripristina visibilità filtri grafico
         const chartFilters = document.getElementById('chartFilters');
         if (chartFilters) {
             chartFilters.style.display = '';
-            console.log('   ✓ Filtri grafico visibili');
         }
         
         // Ripristina visibilità bottone inserisci ferie
         const insertBtn = document.getElementById('insertHolidaysBtn');
         if (insertBtn) {
             insertBtn.style.display = '';
-            console.log('   ✓ Bottone "Inserisci Ferie" visibile');
         }
-        
-        console.log('');
-        console.log('🔓 ACCESSO COMPLETO:');
-        console.log('   → Dashboard: tutti gli utenti');
-        console.log('   → Statistiche: dati globali');
-        console.log('   → Grafico: tutte le linee');
-        console.log('   → Modifiche: tutte le celle');
-        console.log('   → Analisi: tutti gli utenti');
     }
     
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    // GIF Gatta - Solo per Viscomi
+    const gifContainer = document.getElementById('dashboardGifContainer');
+    if (gifContainer) {
+        if (currentUser === 'Viscomi') {
+            gifContainer.style.display = 'block';
+        } else {
+            gifContainer.style.display = 'none';
+        }
+    }
+
 }
 
 
