@@ -18,8 +18,8 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
- 
-  const firebaseConfig = {
+
+ const firebaseConfig = {
     apiKey: "AIzaSyBupKv4YgQNogpZHgOKkpeuxESev1fP5Ew",
     authDomain: "planner-ferie.firebaseapp.com",
     projectId: "planner-ferie",
@@ -1559,6 +1559,15 @@ kbd {
     }
 }
 
+
+
+/* ================= USER MODE (permesso user) ================= */
+body.user-mode #dashboardTable td,
+body.user-mode #dashboardTable th{
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+
 </style>
 </head>
 
@@ -1694,7 +1703,7 @@ kbd {
             <div class="stat-value" id="peakMonth">-</div>
             <div class="stat-subvalue" id="peakDays">0 giorni</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" id="topUserCard">
             <div class="stat-label">Utente con Più Ferie</div>
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
@@ -1906,6 +1915,7 @@ kbd {
 <script>
 /* ================= JS CON FIREBASE ================= */
 const users=["Ferrara","Sedda","Viscomi","Carnelli","Angioletti","Fantozzi","Bresciani","Brambilla","Bergu","Fagioli","Martignon","Sabatini","Trevisin","Parini"];
+window.usersList = users;
 
 // Dati mesi per anno - festività Italia
 const yearsData = {
@@ -2382,7 +2392,7 @@ function renderPlanner(){
         }
         html+=`</tr></thead><tbody>`;
 
-        users.forEach(u=>{
+        window.usersList.forEach(u=>{
             const canEditRow = (currentUserRole !== 'user' || u === currentUser);
 
             html+=`<tr><td class="member-name">${u}</td>`;
@@ -3723,6 +3733,13 @@ function applyUserPermissions() {
         console.log('✅ MODALITÀ USER ATTIVATA');
         console.log('');
 
+
+        // 0. Classe body per stile dedicato USER
+        document.body.classList.add('user-mode');
+
+        // 0b. Nascondi card "Utente con Più Ferie"
+        const topUserCard = document.getElementById('topUserCard');
+        if (topUserCard) topUserCard.style.display = 'none';
         // 1. Nascondi filtri grafico
         const chartFilters = document.getElementById('chartFilters');
         if (chartFilters) {
@@ -3757,6 +3774,13 @@ function applyUserPermissions() {
         console.log('✅ MODALITÀ ADMIN ATTIVATA');
         console.log('');
 
+
+        // 0. Rimuovi classe body USER
+        document.body.classList.remove('user-mode');
+
+        // 0b. Ripristina card "Utente con Più Ferie"
+        const topUserCard = document.getElementById('topUserCard');
+        if (topUserCard) topUserCard.style.display = '';
         // Ripristina visibilità filtri grafico
         const chartFilters = document.getElementById('chartFilters');
         if (chartFilters) {
