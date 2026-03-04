@@ -611,7 +611,14 @@ h1{
     border-radius:10px;
     box-shadow:0 2px 8px rgba(0,0,0,.06);
     border-left:3px solid var(--accent-blue);
+    transition: all 0.2s ease;
 }
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+}
+
 .stat-label{
     font-size:10px;
     color:var(--text-secondary);
@@ -1571,8 +1578,8 @@ body.user-mode #dashboardTable th{
 /* ================= VERSION BADGE ================= */
 .version-badge {
     position: fixed;
-    top: 12px;
-    left: 12px;
+    bottom: 12px;
+    right: 12px;
     z-index: 998;
     font-size: 11px;
     font-weight: 600;
@@ -1597,26 +1604,24 @@ body.user-mode #dashboardTable th{
     .version-badge {
         font-size: 9px;
         padding: 3px 8px;
-        top: 8px;
-        left: 8px;
+        bottom: 8px;
+        right: 8px;
     }
 }
 
 /* ================= USER ROW HIGHLIGHT ================= */
 .user-own-row {
-    background: rgba(59, 130, 246, 0.06) !important;
+    outline: 3px solid rgba(59, 130, 246, 0.5);
+    outline-offset: -1px;
 }
 
 [data-theme="dark"] .user-own-row {
-    background: rgba(59, 130, 246, 0.08) !important;
+    outline: 3px solid rgba(59, 130, 246, 0.6);
 }
 
+/* Non sovrascrivere i background delle celle (sabato/domenica mantengono i loro colori) */
 .user-own-row td {
-    background: rgba(59, 130, 246, 0.06) !important;
-}
-
-[data-theme="dark"] .user-own-row td {
-    background: rgba(59, 130, 246, 0.08) !important;
+    /* Nessun background, mantiene i colori originali */
 }
 
 /* Cursore not-allowed su celle altri utenti per USER */
@@ -1656,6 +1661,64 @@ body.user-mode #dashboardTable th{
 @media (max-width: 480px) {
     .dashboard-gif {
         max-height: 120px;
+    }
+}
+
+/* ================= USER MODE ADJUSTMENTS ================= */
+/* Nascondi dashboard-box per USER */
+.user-mode .dashboard-box {
+    display: none;
+}
+
+/* Chart-box occupa tutto lo spazio per USER */
+.user-mode .chart-box {
+    width: 100%;
+}
+
+/* ================= FLOATING GIF GATTA (EASTER EGG) ================= */
+.floating-gatta {
+    position: fixed;
+    bottom: 50px;
+    left: 20px;
+    z-index: 997;
+    width: 100px;
+    height: 100px;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border-radius: 50%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.floating-gatta:hover {
+    opacity: 1;
+    transform: scale(1.15) rotate(5deg);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .floating-gatta {
+    opacity: 0.6;
+}
+
+[data-theme="dark"] .floating-gatta:hover {
+    opacity: 0.95;
+}
+
+@media (max-width: 768px) {
+    .floating-gatta {
+        width: 70px;
+        height: 70px;
+        bottom: 40px;
+        left: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .floating-gatta {
+        width: 50px;
+        height: 50px;
+        bottom: 35px;
+        left: 10px;
     }
 }
 
@@ -1782,22 +1845,22 @@ body.user-mode #dashboardTable th{
 
     <!-- Statistiche Cards -->
     <div class="stats-row" id="statsRow">
-        <div class="stat-card">
+        <div class="stat-card" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <div class="stat-label">Totale Giorni</div>
             <div class="stat-value" id="totalDays">0</div>
             <div class="stat-subvalue" id="totalHours">0 ore</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Media per Persona</div>
+        <div class="stat-card" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
+            <div class="stat-label" id="avgLabel">Media per Persona</div>
             <div class="stat-value" id="avgDays">0</div>
             <div class="stat-subvalue" id="avgHours">0 ore</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <div class="stat-label">Mese con Più Ferie</div>
             <div class="stat-value" id="peakMonth">-</div>
             <div class="stat-subvalue" id="peakDays">0 giorni</div>
         </div>
-        <div class="stat-card" id="topUserCard">
+        <div class="stat-card" id="topUserCard" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <div class="stat-label">Utente con Più Ferie</div>
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
@@ -1818,10 +1881,6 @@ body.user-mode #dashboardTable th{
                 </thead>
                 <tbody></tbody>
             </table>
-            <!-- GIF Gatta (solo per Viscomi) -->
-            <div id="dashboardGifContainer" class="dashboard-gif-container" style="display:none;">
-                <img src="gatta.gif" alt="Gatta" class="dashboard-gif">
-            </div>
         </div>
 
         <div class="chart-box">
@@ -2209,10 +2268,21 @@ function calculateStats(){
     document.getElementById('totalDays').textContent = totalDays.toFixed(1);
     document.getElementById('totalHours').textContent = (totalDays * 8).toFixed(0) + ' ore';
 
-    // Con permesso USER la media è riferita solo a sé (1 persona)
+    // Seconda card: per USER mostra "Totale Ore", per ADMIN mostra "Media per Persona"
+    const avgLabel = document.getElementById('avgLabel');
     const avgDays = totalDays / visibleUsers.length;
-    document.getElementById('avgDays').textContent = avgDays.toFixed(1);
-    document.getElementById('avgHours').textContent = (avgDays * 8).toFixed(0) + ' ore';
+    
+    if (currentUserRole === 'user') {
+        // USER: mostra totale ore
+        avgLabel.textContent = 'Totale Ore';
+        document.getElementById('avgDays').textContent = (totalDays * 8).toFixed(0);
+        document.getElementById('avgHours').textContent = (totalDays).toFixed(1) + ' giorni';
+    } else {
+        // ADMIN: mostra media
+        avgLabel.textContent = 'Media per Persona';
+        document.getElementById('avgDays').textContent = avgDays.toFixed(1);
+        document.getElementById('avgHours').textContent = (avgDays * 8).toFixed(0) + ' ore';
+    }
 
     const maxMonthIdx = monthDays.indexOf(Math.max(...monthDays));
     document.getElementById('peakMonth').textContent = months[maxMonthIdx].n;
@@ -3423,6 +3493,9 @@ window.initApp = async function() {
 </div>
 <!-- Fine APP CONTAINER -->
 
+<!-- Floating Gatta (Easter Egg - Solo per Viscomi) -->
+<img id="floatingGatta" src="gatta.gif" alt="Gatta" class="floating-gatta" style="display:none;" title="🐱 Miao!">
+
 <script>
 // ================= AUTENTICAZIONE MICROSOFT (MSAL.js) =================
 
@@ -3781,13 +3854,13 @@ function applyUserPermissions() {
         }
     }
     
-    // GIF Gatta - Solo per Viscomi
-    const gifContainer = document.getElementById('dashboardGifContainer');
-    if (gifContainer) {
+    // Floating Gatta - Solo per Viscomi (Easter Egg)
+    const floatingGatta = document.getElementById('floatingGatta');
+    if (floatingGatta) {
         if (currentUser === 'Viscomi') {
-            gifContainer.style.display = 'block';
+            floatingGatta.style.display = 'block';
         } else {
-            gifContainer.style.display = 'none';
+            floatingGatta.style.display = 'none';
         }
     }
 
