@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" type="image/png" href="holiday.png">
 
-<title>Planner Ferie 2026</title>
+<title>Piano Ferie 2026</title>
 
 <!-- MSAL.js per autenticazione Microsoft -->
 <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
@@ -727,12 +727,25 @@ h1{
     color:var(--text-primary);
     transition:all 0.2s ease;
 }
-#dashboardTable td:first-child{
+#dashboardTable td:first-child,
+.dashboard-username {
     text-align:left;
     font-weight:700;
-    color:var(--text-secondary);
     font-size:15px;
 }
+
+/* Colore nome utente - Light Mode */
+#dashboardTable td:first-child,
+.dashboard-username {
+    color:#172754;  /* Blu scuro leggibile */
+}
+
+/* Colore nome utente - Dark Mode */
+[data-theme="dark"] #dashboardTable td:first-child,
+[data-theme="dark"] .dashboard-username {
+    color:#93c5fd;  /* Blu chiaro leggibile */
+}
+
 #dashboardTable tbody tr{
     cursor:pointer;
 }
@@ -1647,7 +1660,7 @@ kbd {
 </div>
 
 <!-- Bottone Inserisci Ferie Animato -->
-<button class="insert-holidays-btn" onclick="openRangeModal()">
+<button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
     <div class="btn-stars-container">
         <div class="btn-stars"></div>
     </div>
@@ -1892,6 +1905,10 @@ kbd {
 
 <script>
 /* ================= JS CON FIREBASE ================= */
+let currentUser=null;
+let currentUserEmail=null;
+let currentUserRole=null;
+
 const users=["Ferrara","Sedda","Viscomi","Carnelli","Angioletti","Fantozzi","Bresciani","Brambilla","Bergu","Fagioli","Martignon","Sabatini","Trevisin","Parini"];
 
 // Dati mesi per anno - festività Italia
@@ -2066,11 +2083,13 @@ async function loadAllData() {
 // ================= STATISTICHE =================
 
 function calculateStats(){
+    const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
+
     let totalDays = 0;
     let userDays = {};
     let monthDays = Array(12).fill(0);
-    
-    users.forEach(u => {
+
+    visibleUsers.forEach(u => {
         userDays[u] = 0;
         months.forEach((m, mi) => {
             for(let d = 1; d <= m.d; d++){
@@ -2082,21 +2101,26 @@ function calculateStats(){
             }
         });
     });
-    
+
     document.getElementById('totalDays').textContent = totalDays.toFixed(1);
     document.getElementById('totalHours').textContent = (totalDays * 8).toFixed(0) + ' ore';
-    
-    const avgDays = totalDays / users.length;
+
+    // Con permesso USER la media è riferita solo a sé (1 persona)
+    const avgDays = totalDays / visibleUsers.length;
     document.getElementById('avgDays').textContent = avgDays.toFixed(1);
     document.getElementById('avgHours').textContent = (avgDays * 8).toFixed(0) + ' ore';
-    
+
     const maxMonthIdx = monthDays.indexOf(Math.max(...monthDays));
     document.getElementById('peakMonth').textContent = months[maxMonthIdx].n;
     document.getElementById('peakDays').textContent = monthDays[maxMonthIdx].toFixed(1) + ' giorni';
-    
-    const maxUser = Object.keys(userDays).reduce((a, b) => userDays[a] > userDays[b] ? a : b);
+
+    // Con permesso USER il "top user" è sempre l'utente loggato
+    let maxUser = currentUser;
+    if(currentUserRole !== 'user'){
+        maxUser = Object.keys(userDays).reduce((a, b) => userDays[a] > userDays[b] ? a : b);
+    }
     document.getElementById('topUser').innerHTML = maxUser + '<span class="crown-icon">👑</span>';
-    document.getElementById('topUserDays').textContent = userDays[maxUser].toFixed(1) + ' giorni';
+    document.getElementById('topUserDays').textContent = (userDays[maxUser] || 0).toFixed(1) + ' giorni';
 }
 
 // ================= FILTRI UTENTI =================
@@ -2104,6 +2128,11 @@ function calculateStats(){
 function renderFilters(){
     const container = document.getElementById('chartFilters');
     container.innerHTML = '';
+
+    // Permesso USER: nessun filtro selezionabile (solo sé stesso)
+    if(currentUserRole === 'user'){
+        return;
+    }
     
     users.forEach(u => {
         const chip = document.createElement('div');
@@ -2123,6 +2152,12 @@ function renderFilters(){
 }
 
 function toggleFilter(user){
+    // Utente con permesso USER: il grafico deve restare solo sul proprio profilo
+    if(currentUserRole === 'user'){
+        activeFilters = new Set([currentUser]);
+        return;
+    }
+
     if(activeFilters.has(user)){
         activeFilters.delete(user);
     } else {
@@ -2351,7 +2386,11 @@ function renderPlanner(){
         }
         html+=`</tr></thead><tbody>`;
 
-        users.forEach(u=>{
+        const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
+
+        visibleUsers.forEach(u=>{
+            const canEditRow = (currentUserRole !== 'user' || u === currentUser);
+
             html+=`<tr><td class="member-name">${u}</td>`;
             for(let d=1;d<=m.d;d++){
                 const wd=new Date(currentYear,mi,d).getDay();
@@ -2373,7 +2412,11 @@ function renderPlanner(){
                         cls = "editable presidio-cell";
                     }
                     
-                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}">${displayValue}</td>`;
+                    if(canEditRow){
+                        html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}">${displayValue}</td>`;
+                    } else {
+                        html+=`<td class="${cls.replace('editable','').trim()}" data-key="${key}">${displayValue}</td>`;
+                    }
                 }
                 // Altri giorni: ferie normali
                 else{
@@ -2381,7 +2424,11 @@ function renderPlanner(){
                     if(v==="8")cls+=" full-day";
                     if(v.endsWith("M"))cls+=" morning-partial";
                     if(v.endsWith("P"))cls+=" afternoon-partial";
+                    if(canEditRow){
                     html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}">${v}</td>`;
+                } else {
+                    html+=`<td class="${cls.replace('editable','').trim()}" data-key="${key}">${v}</td>`;
+                }
                 }
             }
             html+=`</tr>`;
@@ -2395,7 +2442,10 @@ function renderPlanner(){
 function renderDashboard(){
     const tb=document.querySelector("#dashboardTable tbody");
     tb.innerHTML="";
-    users.forEach(u=>{
+
+    const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
+
+    visibleUsers.forEach(u=>{
         let days=0;
         months.forEach((m,mi)=>{
             for(let d=1;d<=m.d;d++){
@@ -2403,10 +2453,10 @@ function renderDashboard(){
                 days+=parseDays(dataCache[key]);
             }
         });
-        tb.innerHTML+=`<tr>
-            <td style="cursor:pointer;font-weight:600;color:var(--accent-blue);" onclick="openUserAnalysis('${u}')" title="Clicca per analisi dettagliata">
-                📊 ${u}
-            </td>
+        
+        // Click sull'intera riga, senza icona
+        tb.innerHTML+=`<tr onclick="openUserAnalysis('${u}')" style="cursor:pointer;" title="Clicca per analisi dettagliata">
+            <td class="dashboard-username">${u}</td>
             <td>${days.toFixed(1)}</td>
             <td>${(days * 8).toFixed(0)}</td>
         </tr>`;
@@ -2418,6 +2468,14 @@ function renderDashboard(){
 // ================= MODALE E SELEZIONE =================
 
 function handleCellClick(event, td, key, day, month, isSaturday){
+    // Permesso USER: modifica consentita solo sulla propria riga
+    if(currentUserRole === 'user'){
+        const keyUser = (key || '').split('-')[0];
+        if(keyUser && keyUser !== currentUser){
+            return;
+        }
+    }
+
     // Se SHIFT è premuto, gestisci selezione
     if(event.shiftKey){
         event.preventDefault();
@@ -2711,6 +2769,11 @@ let analysisChart = null;
 let currentAnalysisUser = null;
 
 function openUserAnalysis(username){
+    // Permesso USER: consentita analisi solo del proprio profilo
+    if(currentUserRole === 'user' && username !== currentUser){
+        return;
+    }
+
     currentAnalysisUser = username;
     
     // Apri modal
@@ -3227,6 +3290,13 @@ window.initApp = async function() {
     await loadAllData();
     setupRealtimeListener();
     render();
+    
+    // *** APPLICA PERMESSI UI DOPO IL RENDER ***
+    // A questo punto il DOM è renderizzato, applica nascondimento/visualizzazione elementi
+    if (typeof currentUserRole !== 'undefined' && currentUserRole) {
+        applyUserPermissions();
+    }
+    
     document.getElementById('loadingOverlay').style.display = 'none';
     
     // Listener per ESC - annulla selezione multipla o chiudi popup
@@ -3628,26 +3698,96 @@ function showApp() {
     roleSpan.textContent = currentUserRole;
     roleSpan.className = 'user-info-role ' + currentUserRole;
     
-    // Inizializza app
+    // *** SETUP PERMESSI PRIMA DI INIZIALIZZARE ***
+    // Imposta activeFilters in base al ruolo PRIMA che render() venga chiamato
+    if (currentUserRole === 'user') {
+        activeFilters = new Set([currentUser]);
+        console.log('🔧 Pre-setup: Filtri grafico impostati su', currentUser);
+    } else {
+        // Admin può vedere tutti di default
+        console.log('🔧 Pre-setup: Permessi admin - tutti i filtri disponibili');
+    }
+    
+    // Inizializza app (che chiamerà render() con activeFilters già impostato)
     if (window.firebaseDB && window.initApp) {
         window.initApp();
     }
-    
-    // Applica permessi UI
-    applyUserPermissions();
 }
+
 
 // Funzione per applicare permessi UI
 function applyUserPermissions() {
-    if (currentUserRole === 'user') {
-        // Nascondere/modificare elementi per user
-        console.log('Applicazione permessi USER per:', currentUser);
+    const isUser = currentUserRole === 'user';
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔐 APPLICAZIONE PERMESSI UI');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('👤 Utente:', currentUser);
+    console.log('🔑 Ruolo:', currentUserRole);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    if (isUser) {
+        console.log('✅ MODALITÀ USER ATTIVATA');
+        console.log('');
+
+        // 1. Nascondi filtri grafico
+        const chartFilters = document.getElementById('chartFilters');
+        if (chartFilters) {
+            chartFilters.style.display = 'none';
+            console.log('   ✓ Filtri grafico nascosti');
+        }
+
+        // 2. Nascondi bottone "Inserisci Ferie"
+        const insertBtn = document.getElementById('insertHolidaysBtn');
+        if (insertBtn) {
+            insertBtn.style.display = 'none';
+            console.log('   ✓ Bottone "Inserisci Ferie" nascosto');
+        }
+
+        // 3. Chiudi analisi se aperta su altro utente
+        if (typeof currentAnalysisUser !== 'undefined' && currentAnalysisUser && currentAnalysisUser !== currentUser) {
+            try { 
+                closeUserAnalysis(); 
+                console.log('   ✓ Analisi altro utente chiusa');
+            } catch(e) {}
+        }
         
-        // Implementeremo i filtri specifici nella FASE 2
-        // Per ora solo log
+        console.log('');
+        console.log('📊 RESTRIZIONI APPLICATE:');
+        console.log('   → Dashboard: solo', currentUser);
+        console.log('   → Statistiche: solo dati personali');
+        console.log('   → Grafico: solo propria linea');
+        console.log('   → Modifiche: solo proprie celle');
+        console.log('   → Analisi: solo propria');
+        
     } else {
-        console.log('Permessi ADMIN per:', currentUser);
+        console.log('✅ MODALITÀ ADMIN ATTIVATA');
+        console.log('');
+
+        // Ripristina visibilità filtri grafico
+        const chartFilters = document.getElementById('chartFilters');
+        if (chartFilters) {
+            chartFilters.style.display = '';
+            console.log('   ✓ Filtri grafico visibili');
+        }
+        
+        // Ripristina visibilità bottone inserisci ferie
+        const insertBtn = document.getElementById('insertHolidaysBtn');
+        if (insertBtn) {
+            insertBtn.style.display = '';
+            console.log('   ✓ Bottone "Inserisci Ferie" visibile');
+        }
+        
+        console.log('');
+        console.log('🔓 ACCESSO COMPLETO:');
+        console.log('   → Dashboard: tutti gli utenti');
+        console.log('   → Statistiche: dati globali');
+        console.log('   → Grafico: tutte le linee');
+        console.log('   → Modifiche: tutte le celle');
+        console.log('   → Analisi: tutti gli utenti');
     }
+    
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 
 
