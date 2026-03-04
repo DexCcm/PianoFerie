@@ -19,7 +19,7 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
-  const firebaseConfig = {
+ const firebaseConfig = {
     apiKey: "AIzaSyBupKv4YgQNogpZHgOKkpeuxESev1fP5Ew",
     authDomain: "planner-ferie.firebaseapp.com",
     projectId: "planner-ferie",
@@ -1905,10 +1905,6 @@ kbd {
 
 <script>
 /* ================= JS CON FIREBASE ================= */
-var currentUser=null;
-var currentUserEmail=null;
-var currentUserRole=null;
-
 const users=["Ferrara","Sedda","Viscomi","Carnelli","Angioletti","Fantozzi","Bresciani","Brambilla","Bergu","Fagioli","Martignon","Sabatini","Trevisin","Parini"];
 
 // Dati mesi per anno - festività Italia
@@ -3624,9 +3620,9 @@ const usersConfig = {
 };
 
 // Variabili globali utente
-currentUser = null;
-currentUserEmail = null;
-currentUserRole = null;
+let currentUser = null;
+let currentUserEmail = null;
+let currentUserRole = null;
 
 // Funzione di login
 async function signIn() {
@@ -3712,7 +3708,6 @@ function showApp() {
     if (window.firebaseDB && window.initApp) {
         window.initApp();
     }
-}
 }
 
 // Funzione per applicare permessi UI
