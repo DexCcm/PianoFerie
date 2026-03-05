@@ -663,10 +663,45 @@ h1{
     border-radius:12px;
     box-shadow:0 2px 8px rgba(0,0,0,.06);
 }
+
 .chart-box h3{
     margin:0 0 14px 0;
     color:var(--title-blue);
     font-size:17px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: color 0.2s ease;
+}
+
+.chart-box h3:hover {
+    color: #3b82f6;
+}
+
+/* Icona freccia toggle */
+.chart-toggle-icon {
+    font-size: 14px;
+    transition: transform 0.3s ease;
+    color: var(--text-secondary);
+}
+
+.chart-toggle-icon.expanded {
+    transform: rotate(180deg);
+}
+
+/* Contenuto grafico collassabile */
+.chart-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 1000px;
+    opacity: 1;
+}
+
+.chart-content.collapsed {
+    max-height: 0;
+    opacity: 0;
 }
 
 /* Filtri Utenti */
@@ -845,13 +880,14 @@ th.member-name,td.member-name{
     text-align:left;
     padding-left:10px;
     white-space:nowrap;
+    font-size:14px; /* +1pt */
 }
 
 .weekday-row th{
     background:#EFF3FE;
     color:var(--title-blue);
     font-weight:600;
-    font-size:13px;
+    font-size:14px; /* +1pt da 13px */
 }
 .holiday-col{
     background:#fde6b3;
@@ -1611,12 +1647,22 @@ body.user-mode #dashboardTable th{
 
 /* ================= USER ROW HIGHLIGHT ================= */
 .user-own-row {
-    outline: 3px solid rgba(59, 130, 246, 0.5);
-    outline-offset: -1px;
+    border-top: 3px solid rgba(59, 130, 246, 0.5);
+    border-bottom: 3px solid rgba(59, 130, 246, 0.5);
 }
 
 [data-theme="dark"] .user-own-row {
-    outline: 3px solid rgba(59, 130, 246, 0.6);
+    border-top: 3px solid rgba(59, 130, 246, 0.6);
+    border-bottom: 3px solid rgba(59, 130, 246, 0.6);
+}
+
+/* Evidenziazione cella nome utente */
+.user-own-cell {
+    border-left: 3px solid rgba(59, 130, 246, 0.5);
+}
+
+[data-theme="dark"] .user-own-cell {
+    border-left: 3px solid rgba(59, 130, 246, 0.6);
 }
 
 /* Non sovrascrivere i background delle celle (sabato/domenica mantengono i loro colori) */
@@ -1681,8 +1727,8 @@ body.user-mode #dashboardTable th{
     bottom: 50px;
     left: 20px;
     z-index: 997;
-    width: 100px;
-    height: 100px;
+    width: 140px;  /* Aumentato da 100px */
+    height: 140px; /* Aumentato da 100px */
     opacity: 0.7;
     transition: all 0.3s ease;
     cursor: pointer;
@@ -1706,8 +1752,9 @@ body.user-mode #dashboardTable th{
 
 @media (max-width: 768px) {
     .floating-gatta {
-        width: 70px;
-        height: 70px;
+        display: none !important;
+        width: 90px;   /* Aumentato da 70px */
+        height: 90px;  /* Aumentato da 70px */
         bottom: 40px;
         left: 15px;
     }
@@ -1715,10 +1762,82 @@ body.user-mode #dashboardTable th{
 
 @media (max-width: 480px) {
     .floating-gatta {
-        width: 50px;
-        height: 50px;
+        width: 60px;   /* Aumentato da 50px */
+        height: 60px;  /* Aumentato da 50px */
         bottom: 35px;
         left: 10px;
+    }
+}
+
+/* ================= DESKTOP FULLSCREEN - PIÙ COMPATTO E CENTRATO ================= */
+@media (min-width: 1400px) {
+    .page-wrapper {
+        gap: 20px;
+        max-width: 1750px; /* Aumentato del ~9% da 1600px */
+        margin: 0 auto;    /* CENTRATO */
+        width: 100%;
+        padding: 0 20px;
+    }
+    
+    /* Mantieni sezione top compatta */
+    h1 {
+        margin: 8px 0 12px; /* Leggermente ridotto */
+        font-size: 28px;    /* Mantieni dimensione originale */
+    }
+    
+    .calendar-header {
+        margin-bottom: 16px; /* Ridotto se necessario */
+    }
+    
+    .view-btn {
+        padding: 10px 18px; /* Mantieni dimensioni compatte */
+    }
+    
+    .stats-row {
+        width: 75%; /* Uniformato - più largo di prima */
+        gap: 10px;
+        margin-bottom: 12px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .stat-card {
+        padding: 12px 14px;
+    }
+    
+    .stat-value {
+        font-size: 22px;
+    }
+    
+    .dashboard-row {
+        width: 75%; /* Uniformato - uguale a stats-row */
+        gap: 2%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .dashboard-box,
+    .chart-box {
+        padding: 16px;
+    }
+    
+    .planner-container {
+        width: 75%; /* Uniformato - uguale alle altre sezioni */
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .planner table {
+        font-size: 12px;
+    }
+    
+    .planner th,
+    .planner td {
+        padding: 6px 4px;
+    }
+    
+    .planner-box {
+        padding: 14px;
     }
 }
 
@@ -1884,9 +2003,14 @@ body.user-mode #dashboardTable th{
         </div>
 
         <div class="chart-box">
-            <h3>Giorni di Ferie per Mese</h3>
-            <div class="chart-filters" id="chartFilters"></div>
-            <canvas id="chart"></canvas>
+            <h3 onclick="toggleChart()" title="Clicca per espandere/comprimere">
+                <span>Giorni di Ferie per Mese</span>
+                <span class="chart-toggle-icon">▼</span>
+            </h3>
+            <div class="chart-content collapsed" id="chartContent">
+                <div class="chart-filters" id="chartFilters"></div>
+                <canvas id="chart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -2509,6 +2633,27 @@ function setView(v,btn){
     render();
 }
 
+// ================= TOGGLE GRAFICO =================
+
+function toggleChart() {
+    const chartContent = document.getElementById('chartContent');
+    const icon = document.querySelector('.chart-toggle-icon');
+    
+    if (chartContent && icon) {
+        if (chartContent.classList.contains('collapsed')) {
+            // Espandi
+            chartContent.classList.remove('collapsed');
+            icon.classList.add('expanded');
+        } else {
+            // Collassa
+            chartContent.classList.add('collapsed');
+            icon.classList.remove('expanded');
+        }
+    }
+}
+
+// ================= FUNZIONI RENDER =================
+
 function render(){
     renderPlanner();
     renderDashboard();
@@ -2563,10 +2708,13 @@ function renderPlanner(){
         window.usersList.forEach(u=>{
             const canEditRow = (currentUserRole !== 'user' || u === currentUser);
             
-            // Classe per evidenziare riga utente corrente se è USER
-            const rowClass = (currentUserRole === 'user' && u === currentUser) ? ' class="user-own-row"' : '';
+            // Classe per evidenziare riga utente corrente (sia USER che ADMIN)
+            const rowClass = (u === currentUser) ? ' class="user-own-row"' : '';
+            
+            // Classe per evidenziare cella nome utente (sia USER che ADMIN)
+            const cellClass = (u === currentUser) ? ' user-own-cell' : '';
 
-            html+=`<tr${rowClass}><td class="member-name">${u}</td>`;
+            html+=`<tr${rowClass}><td class="member-name${cellClass}">${u}</td>`;
             for(let d=1;d<=m.d;d++){
                 const wd=new Date(currentYear,mi,d).getDay();
                 const key=`${u}-${currentYear}-${mi}-${d}`;
