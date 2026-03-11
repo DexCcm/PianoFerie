@@ -1775,15 +1775,10 @@ body.user-mode #dashboardTable th{
 
 /* ================= DASHBOARD TABLE SCROLL ================= */
 .dashboard-table-wrapper {
-    max-height: 240px; /* ~5 righe */
+    max-height: 480px; /* ~10-12 righe, poi scroll */
     overflow-y: auto;
     overflow-x: hidden;
     border-radius: 8px;
-    transition: max-height 0.3s ease;
-}
-
-.dashboard-table-wrapper.expanded {
-    max-height: 600px; /* Tutte le righe */
 }
 
 /* Scrollbar personalizzata */
@@ -1817,33 +1812,34 @@ body.user-mode #dashboardTable th{
     margin: 0;
 }
 
-.dashboard-toggle-btn {
+/* Bottone ordinamento dashboard */
+.dashboard-sort-btn {
     background: transparent;
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
-    padding: 4px 10px;
+    padding: 6px 10px;
     border-radius: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 4px;
+    line-height: 1;
 }
 
-.dashboard-toggle-btn:hover {
+.dashboard-sort-btn:hover {
     background: var(--accent-blue);
     color: white;
     border-color: var(--accent-blue);
 }
 
-.dashboard-toggle-icon {
-    font-size: 10px;
+.dashboard-sort-icon {
+    font-size: 14px;
     transition: transform 0.3s ease;
 }
 
-.dashboard-toggle-btn.expanded .dashboard-toggle-icon {
+.dashboard-sort-btn.descending .dashboard-sort-icon {
     transform: rotate(180deg);
 }
 
@@ -2131,9 +2127,8 @@ body.user-mode #dashboardTable th{
                     Totali per Utente
                     <span class="user-count-badge" id="userCountBadge">0</span>
                 </h3>
-                <button class="dashboard-toggle-btn" id="dashboardToggleBtn" onclick="toggleDashboardView()" title="Mostra tutti/Top 5">
-                    <span id="dashboardToggleText">Mostra Tutti</span>
-                    <span class="dashboard-toggle-icon">▼</span>
+                <button class="dashboard-sort-btn descending" id="dashboardSortBtn" onclick="toggleDashboardSort()" title="Ordina crescente/decrescente">
+                    <span class="dashboard-sort-icon">↓</span>
                 </button>
             </div>
             <div class="dashboard-table-wrapper" id="dashboardTableWrapper">
@@ -2153,9 +2148,9 @@ body.user-mode #dashboardTable th{
         <div class="chart-box">
             <h3 id="chartToggleHeader" onclick="toggleChart()" title="Clicca per espandere/comprimere">
                 <span>Giorni di Ferie per Mese</span>
-                <span class="chart-toggle-icon">▼</span>
+                <span class="chart-toggle-icon expanded">▼</span>
             </h3>
-            <div class="chart-content collapsed" id="chartContent">
+            <div class="chart-content" id="chartContent">
                 <div class="chart-filters" id="chartFilters"></div>
                 <canvas id="chart"></canvas>
             </div>
@@ -2931,14 +2926,14 @@ function renderDashboard(){
         usersWithDays.push({ user: u, days: days });
     });
     
-    // Ordina per giorni ferie (decrescente)
-    usersWithDays.sort((a, b) => b.days - a.days);
+    // Ordina in base alla direzione (crescente o decrescente)
+    const isDescending = window.dashboardSortDescending !== false; // Default true
+    usersWithDays.sort((a, b) => {
+        return isDescending ? (b.days - a.days) : (a.days - b.days);
+    });
     
-    // Determina quanti utenti mostrare
-    const showAll = window.dashboardExpanded || false;
-    const displayUsers = (currentUserRole === 'admin' && !showAll) 
-        ? usersWithDays.slice(0, 5) 
-        : usersWithDays;
+    // Mostra TUTTI gli utenti (nessun limite)
+    const displayUsers = usersWithDays;
     
     // Aggiorna badge contatore
     const badge = document.getElementById('userCountBadge');
@@ -2960,26 +2955,33 @@ function renderDashboard(){
     });
 }
 
-// Toggle Dashboard View (Top 5 / Tutti)
-function toggleDashboardView() {
-    const wrapper = document.getElementById('dashboardTableWrapper');
-    const btn = document.getElementById('dashboardToggleBtn');
-    const text = document.getElementById('dashboardToggleText');
+// Toggle Dashboard Sort (Crescente / Decrescente)
+function toggleDashboardSort() {
+    const btn = document.getElementById('dashboardSortBtn');
+    const icon = btn ? btn.querySelector('.dashboard-sort-icon') : null;
     
-    window.dashboardExpanded = !window.dashboardExpanded;
+    // Toggle direzione ordinamento
+    window.dashboardSortDescending = !window.dashboardSortDescending;
     
-    if (window.dashboardExpanded) {
-        wrapper.classList.add('expanded');
-        btn.classList.add('expanded');
-        text.textContent = 'Top 5';
-    } else {
-        wrapper.classList.remove('expanded');
-        btn.classList.remove('expanded');
-        text.textContent = 'Mostra Tutti';
+    // Aggiorna UI bottone
+    if (btn && icon) {
+        if (window.dashboardSortDescending) {
+            btn.classList.add('descending');
+            btn.classList.remove('ascending');
+            icon.textContent = '↓';
+            btn.title = 'Ordina crescente';
+        } else {
+            btn.classList.remove('descending');
+            btn.classList.add('ascending');
+            icon.textContent = '↑';
+            btn.title = 'Ordina decrescente';
+        }
     }
     
+    // Re-render dashboard con nuovo ordinamento
     renderDashboard();
 }
+
 
 // ================= MODAL FUNCTIONS =================
 
@@ -4059,7 +4061,7 @@ let currentUserEmail = null;
 let currentUserRole = null;
 
 // Variabili globali UI
-window.dashboardExpanded = false; // Default: mostra top 5
+window.dashboardSortDescending = true; // Default: ordinamento decrescente
 
 // Funzione di login
 async function signIn() {
@@ -4179,10 +4181,10 @@ function applyUserPermissions() {
             if (chartToggleIcon) chartToggleIcon.style.display = 'none';
         }
         
-        // 4. Nascondi toggle dashboard (USER non ha dashboard)
-        const dashboardToggleBtn = document.getElementById('dashboardToggleBtn');
-        if (dashboardToggleBtn) {
-            dashboardToggleBtn.style.display = 'none';
+        // 4. Nascondi bottone ordinamento dashboard (USER non ha dashboard)
+        const dashboardSortBtn = document.getElementById('dashboardSortBtn');
+        if (dashboardSortBtn) {
+            dashboardSortBtn.style.display = 'none';
         }
 
         // 5. Chiudi analisi se aperta su altro utente
@@ -4224,10 +4226,10 @@ function applyUserPermissions() {
             if (chartToggleIcon) chartToggleIcon.style.display = '';
         }
         
-        // Ripristina toggle dashboard per ADMIN
-        const dashboardToggleBtn = document.getElementById('dashboardToggleBtn');
-        if (dashboardToggleBtn) {
-            dashboardToggleBtn.style.display = '';
+        // Ripristina bottone ordinamento dashboard per ADMIN
+        const dashboardSortBtn = document.getElementById('dashboardSortBtn');
+        if (dashboardSortBtn) {
+            dashboardSortBtn.style.display = '';
         }
     }
     
