@@ -1773,6 +1773,91 @@ body.user-mode #dashboardTable th{
     width: 100%;
 }
 
+/* ================= DASHBOARD TABLE SCROLL ================= */
+.dashboard-table-wrapper {
+    max-height: 240px; /* ~5 righe */
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 8px;
+    transition: max-height 0.3s ease;
+}
+
+.dashboard-table-wrapper.expanded {
+    max-height: 600px; /* Tutte le righe */
+}
+
+/* Scrollbar personalizzata */
+.dashboard-table-wrapper::-webkit-scrollbar {
+    width: 8px;
+}
+
+.dashboard-table-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-main);
+    border-radius: 4px;
+}
+
+.dashboard-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--accent-blue);
+    border-radius: 4px;
+}
+
+.dashboard-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+}
+
+/* Header dashboard con toggle */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.dashboard-header h3 {
+    margin: 0;
+}
+
+.dashboard-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dashboard-toggle-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+    border-color: var(--accent-blue);
+}
+
+.dashboard-toggle-icon {
+    font-size: 10px;
+    transition: transform 0.3s ease;
+}
+
+.dashboard-toggle-btn.expanded .dashboard-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* Badge contatore */
+.user-count-badge {
+    background: var(--accent-blue);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 6px;
+}
+
 /* ================= FLOATING GIF GATTA (EASTER EGG) ================= */
 .floating-gatta {
     position: fixed;
@@ -2041,21 +2126,32 @@ body.user-mode #dashboardTable th{
     <!-- dashboard -->
     <div class="dashboard-row" id="dashboardRow">
         <div class="dashboard-box">
-            <h3>Totali per Utente</h3>
-            <table id="dashboardTable">
-                <thead>
-                    <tr>
-                        <th>Utente</th>
-                        <th>Giorni</th>
-                        <th>Ore</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <div class="dashboard-header">
+                <h3>
+                    Totali per Utente
+                    <span class="user-count-badge" id="userCountBadge">0</span>
+                </h3>
+                <button class="dashboard-toggle-btn" id="dashboardToggleBtn" onclick="toggleDashboardView()" title="Mostra tutti/Top 5">
+                    <span id="dashboardToggleText">Mostra Tutti</span>
+                    <span class="dashboard-toggle-icon">▼</span>
+                </button>
+            </div>
+            <div class="dashboard-table-wrapper" id="dashboardTableWrapper">
+                <table id="dashboardTable">
+                    <thead>
+                        <tr>
+                            <th>Utente</th>
+                            <th>Giorni</th>
+                            <th>Ore</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="chart-box">
-            <h3 onclick="toggleChart()" title="Clicca per espandere/comprimere">
+            <h3 id="chartToggleHeader" onclick="toggleChart()" title="Clicca per espandere/comprimere">
                 <span>Giorni di Ferie per Mese</span>
                 <span class="chart-toggle-icon">▼</span>
             </h3>
@@ -2822,6 +2918,8 @@ function renderDashboard(){
 
     const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
 
+    // Calcola giorni ferie per ogni utente
+    const usersWithDays = [];
     visibleUsers.forEach(u=>{
         let days=0;
         months.forEach((m,mi)=>{
@@ -2830,6 +2928,28 @@ function renderDashboard(){
                 days+=parseDays(dataCache[key]);
             }
         });
+        usersWithDays.push({ user: u, days: days });
+    });
+    
+    // Ordina per giorni ferie (decrescente)
+    usersWithDays.sort((a, b) => b.days - a.days);
+    
+    // Determina quanti utenti mostrare
+    const showAll = window.dashboardExpanded || false;
+    const displayUsers = (currentUserRole === 'admin' && !showAll) 
+        ? usersWithDays.slice(0, 5) 
+        : usersWithDays;
+    
+    // Aggiorna badge contatore
+    const badge = document.getElementById('userCountBadge');
+    if (badge) {
+        badge.textContent = displayUsers.length;
+    }
+    
+    // Renderizza righe
+    displayUsers.forEach(item => {
+        const u = item.user;
+        const days = item.days;
         
         // Click sull'intera riga, senza icona
         tb.innerHTML+=`<tr onclick="openUserAnalysis('${u}')" style="cursor:pointer;" title="Clicca per analisi dettagliata">
@@ -2838,6 +2958,27 @@ function renderDashboard(){
             <td>${(days * 8).toFixed(0)}</td>
         </tr>`;
     });
+}
+
+// Toggle Dashboard View (Top 5 / Tutti)
+function toggleDashboardView() {
+    const wrapper = document.getElementById('dashboardTableWrapper');
+    const btn = document.getElementById('dashboardToggleBtn');
+    const text = document.getElementById('dashboardToggleText');
+    
+    window.dashboardExpanded = !window.dashboardExpanded;
+    
+    if (window.dashboardExpanded) {
+        wrapper.classList.add('expanded');
+        btn.classList.add('expanded');
+        text.textContent = 'Top 5';
+    } else {
+        wrapper.classList.remove('expanded');
+        btn.classList.remove('expanded');
+        text.textContent = 'Mostra Tutti';
+    }
+    
+    renderDashboard();
 }
 
 // ================= MODAL FUNCTIONS =================
@@ -3917,6 +4058,9 @@ let currentUser = null;
 let currentUserEmail = null;
 let currentUserRole = null;
 
+// Variabili globali UI
+window.dashboardExpanded = false; // Default: mostra top 5
+
 // Funzione di login
 async function signIn() {
     if (!msalInstance) {
@@ -4023,8 +4167,25 @@ function applyUserPermissions() {
         if (insertBtn) {
             insertBtn.style.display = 'none';
         }
+        
+        // 3. Nascondi toggle grafico (solo ADMIN può espandere/comprimere)
+        const chartToggleHeader = document.getElementById('chartToggleHeader');
+        if (chartToggleHeader) {
+            chartToggleHeader.onclick = null; // Rimuovi click handler
+            chartToggleHeader.style.cursor = 'default';
+            chartToggleHeader.title = '';
+            // Nascondi icona freccia
+            const chartToggleIcon = chartToggleHeader.querySelector('.chart-toggle-icon');
+            if (chartToggleIcon) chartToggleIcon.style.display = 'none';
+        }
+        
+        // 4. Nascondi toggle dashboard (USER non ha dashboard)
+        const dashboardToggleBtn = document.getElementById('dashboardToggleBtn');
+        if (dashboardToggleBtn) {
+            dashboardToggleBtn.style.display = 'none';
+        }
 
-        // 3. Chiudi analisi se aperta su altro utente
+        // 5. Chiudi analisi se aperta su altro utente
         if (typeof currentAnalysisUser !== 'undefined' && currentAnalysisUser && currentAnalysisUser !== currentUser) {
             try { 
                 closeUserAnalysis(); 
@@ -4051,6 +4212,22 @@ function applyUserPermissions() {
         const insertBtn = document.getElementById('insertHolidaysBtn');
         if (insertBtn) {
             insertBtn.style.display = '';
+        }
+        
+        // Ripristina toggle grafico per ADMIN
+        const chartToggleHeader = document.getElementById('chartToggleHeader');
+        if (chartToggleHeader) {
+            chartToggleHeader.onclick = toggleChart;
+            chartToggleHeader.style.cursor = 'pointer';
+            chartToggleHeader.title = 'Clicca per espandere/comprimere';
+            const chartToggleIcon = chartToggleHeader.querySelector('.chart-toggle-icon');
+            if (chartToggleIcon) chartToggleIcon.style.display = '';
+        }
+        
+        // Ripristina toggle dashboard per ADMIN
+        const dashboardToggleBtn = document.getElementById('dashboardToggleBtn');
+        if (dashboardToggleBtn) {
+            dashboardToggleBtn.style.display = '';
         }
     }
     
