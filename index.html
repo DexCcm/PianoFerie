@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link rel="icon" type="image/png" href="holiday.png">
 
-<title>Planner Ferie 2026</title>
+<title>Piano Ferie Area CCM</title>
 
 <!-- MSAL.js per autenticazione Microsoft -->
 <script defer src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
@@ -19,17 +19,15 @@
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
- const firebaseConfig = {
-    apiKey: "AIzaSyBupKv4YgQNogpZHgOKkpeuxESev1fP5Ew",
-    authDomain: "planner-ferie.firebaseapp.com",
-    projectId: "planner-ferie",
-    storageBucket: "planner-ferie.firebasestorage.app",
-    messagingSenderId: "511639574108",
-    appId: "1:511639574108:web:2def4d68d7b12ea09a7899",
-    measurementId: "G-VBTS0DWXWM",
-    databaseURL: "https://planner-ferie-default-rtdb.europe-west1.firebasedatabase.app/"
+  const firebaseConfig = {
+    apiKey: "AIzaSyDDt3hlkjFnSXll5EpZC3VVnUOok5LpXHA",
+    authDomain: "pianoferieccm.firebaseapp.com",
+    databaseURL: "https://pianoferieccm-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "pianoferieccm",
+    storageBucket: "pianoferieccm.firebasestorage.app",
+    messagingSenderId: "446844390254",
+    appId: "1:446844390254:web:266509bb7b2bde01680f7f"
   };
-
 
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
@@ -2338,7 +2336,9 @@ body.user-mode #dashboardTable th{
 
 <script>
 /* ================= JS CON FIREBASE ================= */
-const users=["Ferrara","Sedda","Viscomi","Carnelli","Angioletti","Fantozzi","Bresciani","Brambilla","Bergu","Fagioli","Martignon","Sabatini","Trevisin","Parini"];
+// Lista utenti (cognomi) - caricata da Firebase all'avvio
+let users = [];
+let usersConfig = {}; // Email e ruoli caricati da Firebase
 window.usersList = users;
 
 // Dati mesi per anno - festività Italia
@@ -3803,9 +3803,60 @@ function exportToPDF(){
     });
 }
 
+// ================= CARICA UTENTI DA FIREBASE =================
+
+async function loadUsersFromFirebase() {
+    console.log('📥 Caricamento configurazione utenti da Firebase...');
+    
+    try {
+        const usersRef = window.firebaseDB.ref('users');
+        const snapshot = await window.firebaseDB.get(usersRef);
+        
+        if (!snapshot.exists()) {
+            console.error('❌ Nessun dato utenti trovato in Firebase!');
+            alert('Errore: Configurazione utenti non trovata nel database.\nContatta l\'amministratore.');
+            return false;
+        }
+        
+        const usersData = snapshot.val();
+        
+        // Popola usersConfig e lista users
+        usersConfig = {};
+        users = [];
+        
+        for (const [cognome, userData] of Object.entries(usersData)) {
+            usersConfig[cognome] = {
+                email: userData.email || '',
+                role: userData.role || 'user'
+            };
+            users.push(cognome);
+        }
+        
+        // Ordina users alfabeticamente
+        users.sort();
+        window.usersList = users;
+        
+        console.log(`✅ Caricati ${users.length} utenti da Firebase:`, users);
+        console.log('📋 Configurazione:', usersConfig);
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Errore caricamento utenti da Firebase:', error);
+        alert('Errore nel caricamento degli utenti.\nRicarica la pagina o contatta l\'amministratore.');
+        return false;
+    }
+}
+
 // ================= INIT APP =================
 
 window.initApp = async function() {
+    // PRIMA: Carica configurazione utenti da Firebase
+    const usersLoaded = await loadUsersFromFirebase();
+    if (!usersLoaded) {
+        document.getElementById('loadingOverlay').style.display = 'none';
+        return; // Blocca inizializzazione se utenti non caricati
+    }
+    
     loadTheme();
     await loadAllData();
     setupRealtimeListener();
@@ -4037,23 +4088,8 @@ async function processRedirect() {
 
 
 
-// Configurazione utenti con ruoli e email
-const usersConfig = {
-    "Ferrara": { role: "admin", email: "luigi.ferrara@dex.it" },
-    "Sedda": { role: "admin", email: "sedda@company.com" },
-    "Viscomi": { role: "admin", email: "simone.viscomi@dataexpert.it" },
-    "Carnelli": { role: "user", email: "carnelli@company.com" },
-    "Angioletti": { role: "user", email: "angioletti@company.com" },
-    "Fantozzi": { role: "user", email: "fantozzi@company.com" },
-    "Bresciani": { role: "user", email: "bresciani@company.com" },
-    "Brambilla": { role: "user", email: "brambilla@company.com" },
-    "Bergu": { role: "user", email: "bergu@company.com" },
-    "Fagioli": { role: "user", email: "fagioli@company.com" },
-    "Martignon": { role: "user", email: "martignon@company.com" },
-    "Sabatini": { role: "user", email: "sabatini@company.com" },
-    "Trevisin": { role: "user", email: "trevisin@company.com" },
-    "Parini": { role: "user", email: "parini@company.com" }
-};
+// Configurazione utenti con ruoli e email - CARICATA DA FIREBASE
+// usersConfig viene popolato da loadUsersFromFirebase()
 
 // Variabili globali utente
 let currentUser = null;
