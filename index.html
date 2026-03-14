@@ -18,6 +18,7 @@
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
   import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+  import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
 
   const firebaseConfig = {
     apiKey: "AIzaSyDDt3hlkjFnSXll5EpZC3VVnUOok5LpXHA",
@@ -31,6 +32,7 @@
 
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
+  const auth = getAuth(app);
 
   window.firebaseDB = {
     ref: (path) => ref(database, path),
@@ -38,6 +40,11 @@
     get: get,
     onValue: onValue,
     remove: remove
+  };
+
+  window.firebaseAuth = {
+    signInAnonymously: () => signInAnonymously(auth),
+    auth: auth
   };
 
   window.addEventListener('DOMContentLoaded', () => {
@@ -3803,6 +3810,31 @@ function exportToPDF(){
     });
 }
 
+// ================= AUTENTICAZIONE FIREBASE =================
+
+async function authenticateFirebase() {
+    console.log('🔐 Autenticazione Firebase in corso...');
+    
+    try {
+        const userCredential = await window.firebaseAuth.signInAnonymously();
+        console.log('✅ Firebase Auth: Autenticato come anonimo', userCredential.user.uid);
+        return true;
+    } catch (error) {
+        console.error('❌ Errore Firebase Authentication:', error);
+        console.error('Codice errore:', error.code);
+        console.error('Messaggio:', error.message);
+        
+        // Messaggio user-friendly
+        let errorMsg = 'Errore autenticazione database.';
+        if (error.code === 'auth/operation-not-allowed') {
+            errorMsg = 'Autenticazione non abilitata.\nContatta l\'amministratore per abilitare "Anonymous Authentication" in Firebase Console.';
+        }
+        
+        alert(errorMsg);
+        return false;
+    }
+}
+
 // ================= CARICA UTENTI DA FIREBASE =================
 
 async function loadUsersFromFirebase() {
@@ -3850,13 +3882,24 @@ async function loadUsersFromFirebase() {
 // ================= INIT APP =================
 
 window.initApp = async function() {
-    // PRIMA: Carica configurazione utenti da Firebase
+    // STEP 1: Autentica con Firebase (richiesto dalle Security Rules)
+    console.log('🚀 Inizializzazione app...');
+    const firebaseAuthSuccess = await authenticateFirebase();
+    if (!firebaseAuthSuccess) {
+        document.getElementById('loadingOverlay').style.display = 'none';
+        console.error('❌ Inizializzazione bloccata: Firebase Auth fallita');
+        return;
+    }
+    
+    // STEP 2: Carica configurazione utenti da Firebase
     const usersLoaded = await loadUsersFromFirebase();
     if (!usersLoaded) {
         document.getElementById('loadingOverlay').style.display = 'none';
-        return; // Blocca inizializzazione se utenti non caricati
+        console.error('❌ Inizializzazione bloccata: Caricamento utenti fallito');
+        return;
     }
     
+    // STEP 3: Inizializza resto dell'app
     loadTheme();
     await loadAllData();
     setupRealtimeListener();
