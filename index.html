@@ -4083,6 +4083,95 @@ const msalConfig = {
 };
 
 /**
+ * Gestisce redirect pendenti da Microsoft.
+ * DEVE essere chiamato SUBITO dopo init MSAL per evitare stato "interaction_in_progress" bloccato.
+ * Questa funzione:
+ * 1. Consuma eventuali redirect pendenti
+ * 2. Salva l'account trovato per uso successivo
+ * 3. Avvia automaticamente initApp se trova un account valido
+ */
+async function handlePendingRedirect() {
+    if (!msalInstance) {
+        console.log('⚠️ handlePendingRedirect: MSAL non inizializzato');
+        return;
+    }
+    
+    try {
+        console.log('🔍 Controllo redirect pendenti...');
+        const redirectResponse = await msalInstance.handleRedirectPromise();
+        
+        if (redirectResponse && redirectResponse.account) {
+            console.log('✅ Redirect completato, account trovato:', redirectResponse.account.username);
+            
+            // Salva account trovato
+            msalInstance.setActiveAccount(redirectResponse.account);
+            
+            // Pulisci URL (rimuovi #code=... dall'URL)
+            if (window.location.hash && window.location.hash.includes('code=')) {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+            
+            // ✅ IMPORTANTE: Avvia initApp automaticamente
+            // L'utente ha appena fatto login, dobbiamo processare
+            console.log('🚀 Avvio automatico initApp dopo redirect...');
+            if (window.initApp) {
+                window.initApp();
+            } else {
+                console.warn('⚠️ window.initApp non ancora definito, attendo...');
+                // Riprova dopo un momento (init asincrono)
+                setTimeout(() => {
+                    if (window.initApp) {
+                        window.initApp();
+                    }
+                }, 500);
+            }
+            
+        } else {
+            console.log('ℹ️ Nessun redirect pendente');
+            
+            // ✅ Controlla se c'è un account cached (utente già loggato in passato)
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                console.log('✅ Trovato account cached, avvio automatico...');
+                msalInstance.setActiveAccount(accounts[0]);
+                
+                if (window.initApp) {
+                    window.initApp();
+                } else {
+                    setTimeout(() => {
+                        if (window.initApp) window.initApp();
+                    }, 500);
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Errore handlePendingRedirect:', error);
+        
+        // ✅ Gestione specifica per interaction_in_progress
+        if (error.errorCode === 'interaction_in_progress') {
+            console.log('⚠️ Stato interaction_in_progress rilevato, tento reset...');
+            
+            // Prova a recuperare account cached
+            const accounts = msalInstance.getAllAccounts();
+            if (accounts.length > 0) {
+                console.log('✅ Trovato account cached, uso quello');
+                msalInstance.setActiveAccount(accounts[0]);
+                
+                if (window.initApp) {
+                    window.initApp();
+                }
+            } else {
+                // Nessun account cached, mostra login
+                console.log('ℹ️ Nessun account cached, mostra login normale');
+            }
+        }
+        
+        // Non bloccare, continua normalmente
+    }
+}
+
+/**
  * Setup login:
  * - assicura che MSAL sia caricato
  * - inizializza msalInstance
@@ -4126,9 +4215,12 @@ function initLogin() {
     // Inizializza MSAL in modo protetto
     try {
         msalInstance = new msal.PublicClientApplication(msalConfig);
-        // ⚠️ NON chiamare processRedirect() qui!
-        // Sarà chiamato da initApp() DOPO aver caricato usersConfig
-        console.log('✅ MSAL inizializzato, in attesa di usersConfig...');
+        console.log('✅ MSAL inizializzato');
+        
+        // ✅ IMPORTANTE: Gestisci SUBITO eventuali redirect pendenti
+        // Questo previene lo stato "interaction_in_progress" bloccato
+        handlePendingRedirect();
+        
     } catch (err) {
         console.error('Errore inizializzazione MSAL:', err);
         if (loginError) {
@@ -4230,19 +4322,35 @@ async function processRedirect() {
     const loginError = document.getElementById('loginError');
     
     try {
-        const result = await msalInstance.handleRedirectPromise();
+        // ✅ Controlla se c'è già un account attivo (da handlePendingRedirect)
+        let active = msalInstance.getActiveAccount();
+        
+        // Solo se NON c'è già un account, chiama handleRedirectPromise
+        if (!active) {
+            console.log('🔍 processRedirect: controllo redirect...');
+            const result = await msalInstance.handleRedirectPromise();
 
-        // Se è appena rientrato dal redirect, usa quell'account
-        if (result && result.account) {
-            msalInstance.setActiveAccount(result.account);
+            // Se è appena rientrato dal redirect, usa quell'account
+            if (result && result.account) {
+                console.log('✅ processRedirect: trovato account da redirect');
+                msalInstance.setActiveAccount(result.account);
+                active = result.account;
+            }
+        } else {
+            console.log('✅ processRedirect: account già presente, skip handleRedirectPromise');
         }
 
-        // Se c'è già un account in cache (utente già loggato)
-        const accounts = msalInstance.getAllAccounts();
-        const active = msalInstance.getActiveAccount() || (accounts.length ? accounts[0] : null);
+        // Se ancora non c'è account attivo, prova dagli account in cache
+        if (!active) {
+            const accounts = msalInstance.getAllAccounts();
+            active = accounts.length ? accounts[0] : null;
+            if (active) {
+                msalInstance.setActiveAccount(active);
+            }
+        }
 
         if (active) {
-            msalInstance.setActiveAccount(active);
+            console.log('✅ processRedirect: applico account:', active.username);
             
             try {
                 applyAccount(active);
@@ -4313,6 +4421,16 @@ async function signIn() {
     
     // ✅ Imposta flag PRIMA di chiamare MSAL
     loginInProgress = true;
+    
+    // ✅ Safety timeout: reset automatico dopo 30 secondi se bloccato
+    const loginTimeout = setTimeout(() => {
+        if (loginInProgress) {
+            console.warn('⚠️ Login timeout: reset automatico dopo 30s');
+            loginInProgress = false;
+            if (loginBtn) loginBtn.disabled = false;
+            if (loginLoading) loginLoading.style.display = 'none';
+        }
+    }, 30000);
 
     const loginBtn = document.getElementById('loginBtn');
     const loginLoading = document.getElementById('loginLoading');
@@ -4329,10 +4447,13 @@ async function signIn() {
         await msalInstance.loginRedirect(loginRequest);
 
         // Nota: il codice sotto non viene eseguito perché la pagina verrà rediretta.
+        clearTimeout(loginTimeout); // Clear timeout se redirect avviene
+        
     } catch (error) {
         console.error('Errore login:', error);
         
-        // ✅ Reset flag in caso di errore
+        // ✅ Clear timeout e reset flag in caso di errore
+        clearTimeout(loginTimeout);
         loginInProgress = false;
         
         // ✅ Gestione errore specifico "interaction_in_progress"
