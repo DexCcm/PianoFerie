@@ -2856,7 +2856,8 @@ function renderPlanner(){
         html+=`</tr></thead><tbody>`;
 
         window.usersList.forEach(u=>{
-            const canEditRow = (currentUserRole !== 'user' || u === currentUser);
+            // USER e ADMIN possono modificare solo la PROPRIA riga
+            const canEditRow = (u === currentUser);
             
             // Classe per evidenziare riga utente corrente (sia USER che ADMIN)
             const rowClass = (u === currentUser) ? ' class="user-own-row"' : '';
@@ -2995,12 +2996,10 @@ function toggleDashboardSort() {
 // ================= MODALE E SELEZIONE =================
 
 function handleCellClick(event, td, key, day, month, isSaturday){
-    // Permesso USER: modifica consentita solo sulla propria riga
-    if(currentUserRole === 'user'){
-        const keyUser = (key || '').split('-')[0];
-        if(keyUser && keyUser !== currentUser){
-            return;
-        }
+    // USER e ADMIN possono modificare solo la PROPRIA riga
+    const keyUser = (key || '').split('-')[0];
+    if(keyUser && keyUser !== currentUser){
+        return; // Blocca se non è la propria riga
     }
 
     // Se SHIFT è premuto, gestisci selezione
@@ -3155,23 +3154,75 @@ function clearSelection(){
 }
 
 async function applyMultipleValue(value){
-    for(let cell of selectedCells){
-        cell.td.textContent = value;
-        await setFirebaseValue(cell.key, value);
+    // Mostra loading per operazioni batch
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    
+    try {
+        // Update UI e cache locale per tutte le celle
+        for(let cell of selectedCells){
+            cell.td.textContent = value;
+            dataCache[cell.key] = value;
+        }
+        
+        // Update Firebase in batch
+        const promises = selectedCells.map(cell => 
+            setFirebaseValue(cell.key, value).catch(err => {
+                console.error(`Errore ${cell.key}:`, err);
+                return null;
+            })
+        );
+        
+        await Promise.all(promises);
+        
+        closeSelectionActionsPopup();
+        clearSelection();
+        
+        // Aggiorna stats e dashboard
+        calculateStats();
+        renderDashboard();
+        
+        document.getElementById('loadingOverlay').style.display = 'none';
+    } catch(error){
+        console.error('Errore batch update:', error);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante il salvataggio. Riprova.');
     }
-    closeSelectionActionsPopup();
-    clearSelection();
-    render();
 }
 
 async function clearMultipleValues(){
-    for(let cell of selectedCells){
-        cell.td.textContent = '';
-        await setFirebaseValue(cell.key, '');
+    // Mostra loading per operazioni batch
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    
+    try {
+        // Update UI e cache locale per tutte le celle
+        for(let cell of selectedCells){
+            cell.td.textContent = '';
+            delete dataCache[cell.key];
+        }
+        
+        // Update Firebase in batch
+        const promises = selectedCells.map(cell => 
+            setFirebaseValue(cell.key, '').catch(err => {
+                console.error(`Errore ${cell.key}:`, err);
+                return null;
+            })
+        );
+        
+        await Promise.all(promises);
+        
+        closeSelectionActionsPopup();
+        clearSelection();
+        
+        // Aggiorna stats e dashboard
+        calculateStats();
+        renderDashboard();
+        
+        document.getElementById('loadingOverlay').style.display = 'none';
+    } catch(error){
+        console.error('Errore batch delete:', error);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante la cancellazione. Riprova.');
     }
-    closeSelectionActionsPopup();
-    clearSelection();
-    render();
 }
 
 function openModal(td,key,day,month,isSaturday){
@@ -3202,10 +3253,24 @@ function closeModal(){
 async function applyValue(v){
     if(!activeCell)return;
     
+    // Update UI immediato
     activeCell.td.textContent=v;
-    await setFirebaseValue(activeCell.key, v);
+    
+    // Update cache locale
+    dataCache[activeCell.key] = v;
+    
+    // Chiudi modal
     closeModal();
-    render();
+    
+    // Update Firebase in background
+    setFirebaseValue(activeCell.key, v).catch(err => {
+        console.error('Errore salvataggio Firebase:', err);
+        alert('Errore salvataggio. Riprova.');
+    });
+    
+    // Aggiorna solo stats e dashboard (più veloce di render() completo)
+    calculateStats();
+    renderDashboard();
 }
 
 async function applyPresidio(){
@@ -3213,10 +3278,25 @@ async function applyPresidio(){
     
     const presidioNum = document.getElementById("presidioInput").value;
     if(presidioNum){
+        // Update UI immediato
         activeCell.td.textContent = presidioNum;
-        await setFirebaseValue(activeCell.key, 'P-' + presidioNum);
+        
+        // Update cache locale
+        const presidioValue = 'P-' + presidioNum;
+        dataCache[activeCell.key] = presidioValue;
+        
+        // Chiudi modal
         closeModal();
-        render();
+        
+        // Update Firebase in background
+        setFirebaseValue(activeCell.key, presidioValue).catch(err => {
+            console.error('Errore salvataggio Firebase:', err);
+            alert('Errore salvataggio. Riprova.');
+        });
+        
+        // Aggiorna solo stats e dashboard
+        calculateStats();
+        renderDashboard();
     } else {
         alert("Inserisci un numero release");
     }
@@ -3225,15 +3305,18 @@ async function applyPresidio(){
 // ================= RANGE FERIE MODAL =================
 
 function openRangeModal(){
-    // Popola select utenti
+    // Popola select utenti con SOLO utente corrente (USER e ADMIN possono inserire solo per sé stessi)
     const select = document.getElementById("rangeUser");
-    select.innerHTML = '<option value="">-- Scegli utente --</option>';
-    users.forEach(u => {
-        const option = document.createElement("option");
-        option.value = u;
-        option.textContent = u;
-        select.appendChild(option);
-    });
+    select.innerHTML = '';
+    
+    const option = document.createElement("option");
+    option.value = currentUser;
+    option.textContent = currentUser;
+    option.selected = true;
+    select.appendChild(option);
+    
+    // Disabilita select (non modificabile)
+    select.disabled = true;
     
     // Imposta date di default
     const today = new Date();
@@ -3262,9 +3345,12 @@ async function applyRangeHolidays(){
         return;
     }
     
-    // Itera su tutte le date del range
+    // Mostra loading
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    
+    // Raccogli tutte le date da inserire (batch)
+    const datesToInsert = [];
     let currentDate = new Date(startDate);
-    let count = 0;
     
     while(currentDate <= endDate){
         const year = currentDate.getFullYear();
@@ -3273,21 +3359,43 @@ async function applyRangeHolidays(){
         const dayOfWeek = currentDate.getDay();
         
         // Salta weekend e festivi
-        if(year === currentYear){
-            const monthData = months[month];
+        // Verifica che l'anno sia disponibile in yearsData
+        if(yearsData[year]){
+            const yearMonths = yearsData[year];
+            const monthData = yearMonths[month];
+            
             if(dayOfWeek !== 0 && dayOfWeek !== 6 && !monthData.h.includes(day)){
-                const key = `${user}-${currentYear}-${month}-${day}`;
-                await setFirebaseValue(key, '8');
-                count++;
+                datesToInsert.push({
+                    key: `${user}-${year}-${month}-${day}`,
+                    year: year,
+                    month: month,
+                    day: day
+                });
             }
         }
         
         currentDate.setDate(currentDate.getDate() + 1);
     }
     
-    closeRangeModal();
-    render();
-    alert(`Inserite ${count} giornate di ferie per ${user}`);
+    // Batch insert per performance
+    try {
+        for(const item of datesToInsert){
+            await setFirebaseValue(item.key, '8');
+            // Aggiorna cache locale
+            dataCache[item.key] = '8';
+        }
+        
+        // Render una volta sola dopo tutti gli inserimenti
+        render();
+        
+        closeRangeModal();
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert(`Inserite ${datesToInsert.length} giornate di ferie per ${user}`);
+    } catch(error){
+        console.error('Errore inserimento batch ferie:', error);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante l\'inserimento. Riprova.');
+    }
 }
 
 // ================= ANALISI UTENTE =================
