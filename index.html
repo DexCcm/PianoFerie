@@ -1715,7 +1715,14 @@ body.user-mode #dashboardTable th{
 }
 
 [data-theme="dark"] .user-own-row td.holiday-col {
-    background: #4a3a1a; /* Colore originale preservato */
+    background: #1e3a5a; /* Blu scuro coerente con palette (invece di marrone) */
+    color: #93c5fd; /* Testo blu chiaro per contrasto */
+}
+
+/* Ferie giornata intera nella riga utente - dark mode con colori più morbidi */
+[data-theme="dark"] .user-own-row td.full-day {
+    background: #881337; /* Rose-900 più morbido del rosso scuro standard */
+    color: #fda4af; /* Rose-300 per testo leggibile */
 }
 
 /* Celle presidio mantengono colore */
@@ -2346,34 +2353,38 @@ let usersConfig = {}; // Email e ruoli caricati da Firebase
 window.usersList = users;
 
 // Dati mesi per anno - festività Italia
+// Festività lavorative ufficiali italiane
+// h: array giorni festivi (1 Gen, 6 Gen Epifania, Pasqua mobile, 25 Apr Liberazione, 
+//    1 Mag Lavoro, 2 Giu Repubblica, 15 Ago Ferragosto, 1 Nov Ognissanti, 
+//    8 Dic Immacolata, 25-26 Dic Natale/Santo Stefano)
 const yearsData = {
     2026: [
-        {n:"Gennaio",s:"Gen",d:31,h:[1,6]},
+        {n:"Gennaio",s:"Gen",d:31,h:[1,6]},              // 1: Capodanno, 6: Epifania
         {n:"Febbraio",s:"Feb",d:28,h:[]},
         {n:"Marzo",s:"Mar",d:31,h:[]},
-        {n:"Aprile",s:"Apr",d:30,h:[25]},
-        {n:"Maggio",s:"Mag",d:31,h:[1]},
-        {n:"Giugno",s:"Giu",d:30,h:[2]},
+        {n:"Aprile",s:"Apr",d:30,h:[5,6,25]},            // 5: Pasqua 2026, 6: Lunedì Angelo, 25: Liberazione
+        {n:"Maggio",s:"Mag",d:31,h:[1]},                 // 1: Festa Lavoro
+        {n:"Giugno",s:"Giu",d:30,h:[2]},                 // 2: Festa Repubblica
         {n:"Luglio",s:"Lug",d:31,h:[]},
-        {n:"Agosto",s:"Ago",d:31,h:[15]},
+        {n:"Agosto",s:"Ago",d:31,h:[15]},                // 15: Ferragosto
         {n:"Settembre",s:"Set",d:30,h:[]},
         {n:"Ottobre",s:"Ott",d:31,h:[]},
-        {n:"Novembre",s:"Nov",d:30,h:[1]},
-        {n:"Dicembre",s:"Dic",d:31,h:[8,25,26]}
+        {n:"Novembre",s:"Nov",d:30,h:[1]},               // 1: Ognissanti
+        {n:"Dicembre",s:"Dic",d:31,h:[8,25,26]}          // 8: Immacolata, 25: Natale, 26: S.Stefano
     ],
     2027: [
-        {n:"Gennaio",s:"Gen",d:31,h:[1,6]},
+        {n:"Gennaio",s:"Gen",d:31,h:[1,6]},              // 1: Capodanno, 6: Epifania
         {n:"Febbraio",s:"Feb",d:28,h:[]},
-        {n:"Marzo",s:"Mar",d:31,h:[]},
-        {n:"Aprile",s:"Apr",d:30,h:[25]},
-        {n:"Maggio",s:"Mag",d:31,h:[1]},
-        {n:"Giugno",s:"Giu",d:30,h:[2]},
+        {n:"Marzo",s:"Mar",d:31,h:[28,29]},              // 28: Pasqua 2027, 29: Lunedì Angelo
+        {n:"Aprile",s:"Apr",d:30,h:[25]},                // 25: Liberazione
+        {n:"Maggio",s:"Mag",d:31,h:[1]},                 // 1: Festa Lavoro
+        {n:"Giugno",s:"Giu",d:30,h:[2]},                 // 2: Festa Repubblica
         {n:"Luglio",s:"Lug",d:31,h:[]},
-        {n:"Agosto",s:"Ago",d:31,h:[15]},
+        {n:"Agosto",s:"Ago",d:31,h:[15]},                // 15: Ferragosto
         {n:"Settembre",s:"Set",d:30,h:[]},
         {n:"Ottobre",s:"Ott",d:31,h:[]},
-        {n:"Novembre",s:"Nov",d:30,h:[1]},
-        {n:"Dicembre",s:"Dic",d:31,h:[8,25,26]}
+        {n:"Novembre",s:"Nov",d:30,h:[1]},               // 1: Ognissanti
+        {n:"Dicembre",s:"Dic",d:31,h:[8,25,26]}          // 8: Immacolata, 25: Natale, 26: S.Stefano
     ]
 };
 
@@ -2926,9 +2937,9 @@ function renderPlanner(){
                 const key=`${u}-${currentYear}-${mi + 1}-${d}`;
                 const v=dataCache[key]||"";
                 
-                // Domeniche e festivi: non editabili
+                // Domeniche e festivi: non editabili, mostrano "F"
                 if(wd===0||m.h.includes(d)){
-                    html+=`<td class="holiday-col"></td>`;
+                    html+=`<td class="holiday-col">F</td>`;
                 }
                 // Sabati: editabili per presidio
                 else if(wd===6){
@@ -3817,84 +3828,19 @@ function exportToPDF(){
         monthsToExport = [0,1,2,3,4,5,6,7,8,9,10,11];
     }
     
-    // Calcola statistiche
-    let totalDays = 0;
-    let userDays = {};
-    let monthDays = Array(12).fill(0);
-    
-    users.forEach(u => {
-        userDays[u] = 0;
-        months.forEach((m, mi) => {
-            for(let d = 1; d <= m.d; d++){
-                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
-                const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
-                const days = parseDays(dataCache[key] || "");
-                totalDays += days;
-                userDays[u] += days;
-                monthDays[mi] += days;
-            }
-        });
-    });
-    
-    const avgDays = totalDays / users.length;
-    const maxMonthIdx = monthDays.indexOf(Math.max(...monthDays));
-    const maxUser = users.reduce((a, b) => userDays[a] > userDays[b] ? a : b);
-    
-    // Costruisci HTML
+    // Costruisci HTML - SOLO CALENDARI
     let html = '<div style="font-family:Arial,sans-serif;padding:20px;background:white;">';
     
     // Titolo
-    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Planner Annuale ' + currentYear + '</h1>';
+    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Planner Ferie ' + currentYear + '</h1>';
     
-    // Stats
-    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">';
-    html += '<div style="border:1px solid #ddd;border-left:3px solid #172754;padding:10px;border-radius:5px;">';
-    html += '<div style="font-size:10px;color:#666;text-transform:uppercase;">TOTALE GIORNI</div>';
-    html += '<div style="font-size:20px;font-weight:bold;color:#172754;margin:5px 0;">' + totalDays.toFixed(1) + '</div>';
-    html += '<div style="font-size:11px;color:#666;">' + (totalDays * 8).toFixed(0) + ' ore</div>';
-    html += '</div>';
-    
-    html += '<div style="border:1px solid #ddd;border-left:3px solid #172754;padding:10px;border-radius:5px;">';
-    html += '<div style="font-size:10px;color:#666;text-transform:uppercase;">MEDIA PER PERSONA</div>';
-    html += '<div style="font-size:20px;font-weight:bold;color:#172754;margin:5px 0;">' + avgDays.toFixed(1) + '</div>';
-    html += '<div style="font-size:11px;color:#666;">' + (avgDays * 8).toFixed(0) + ' ore</div>';
-    html += '</div>';
-    
-    html += '<div style="border:1px solid #ddd;border-left:3px solid #172754;padding:10px;border-radius:5px;">';
-    html += '<div style="font-size:10px;color:#666;text-transform:uppercase;">MESE CON PIÙ FERIE</div>';
-    html += '<div style="font-size:20px;font-weight:bold;color:#172754;margin:5px 0;">' + months[maxMonthIdx].n + '</div>';
-    html += '<div style="font-size:11px;color:#666;">' + monthDays[maxMonthIdx].toFixed(1) + ' giorni</div>';
-    html += '</div>';
-    
-    html += '<div style="border:1px solid #ddd;border-left:3px solid #172754;padding:10px;border-radius:5px;">';
-    html += '<div style="font-size:10px;color:#666;text-transform:uppercase;">UTENTE CON PIÙ FERIE</div>';
-    html += '<div style="font-size:20px;font-weight:bold;color:#172754;margin:5px 0;">' + maxUser + '</div>';
-    html += '<div style="font-size:11px;color:#666;">' + userDays[maxUser].toFixed(1) + ' giorni</div>';
-    html += '</div>';
-    html += '</div>';
-    
-    // Tabella totali
-    html += '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">';
-    html += '<thead><tr>';
-    html += '<th style="background:#dbeafe;color:#172754;padding:8px;border:1px solid #ccc;font-size:12px;">Utente</th>';
-    html += '<th style="background:#dbeafe;color:#172754;padding:8px;border:1px solid #ccc;font-size:12px;">Giorni</th>';
-    html += '<th style="background:#dbeafe;color:#172754;padding:8px;border:1px solid #ccc;font-size:12px;">Ore</th>';
-    html += '</tr></thead><tbody>';
-    
-    users.forEach(u => {
-        html += '<tr>';
-        html += '<td style="padding:8px;border:1px solid #ccc;font-weight:bold;font-size:12px;">' + u + '</td>';
-        html += '<td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:12px;">' + userDays[u].toFixed(1) + '</td>';
-        html += '<td style="padding:8px;border:1px solid #ccc;text-align:center;font-size:12px;">' + (userDays[u] * 8).toFixed(0) + '</td>';
-        html += '</tr>';
-    });
-    html += '</tbody></table>';
-    
-    // Calendari
+    // Calendari (3 mesi per foglio per visualizzazioni da trimestre in su)
     monthsToExport.forEach((mi, idx) => {
         const m = months[mi];
         
-        if(idx > 0 && idx % 2 === 0){
+        // ✅ Page break ogni 3 mesi (per trimestre+)
+        // idx = 3, 6, 9 → nuovo foglio
+        if(idx > 0 && idx % 3 === 0){
             html += '<div style="page-break-before:always;"></div>';
         }
         
@@ -3927,9 +3873,9 @@ function exportToPDF(){
                 const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
                 const v = dataCache[key] || "";
                 
-                // Domeniche e festivi
+                // Domeniche e festivi - mostrano "F"
                 if(wd === 0 || m.h.includes(d)){
-                    html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;"></td>';
+                    html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;color:#78350f;font-weight:bold;">F</td>';
                 }
                 // Sabati (presidio)
                 else if(wd === 6){
@@ -4053,8 +3999,7 @@ async function loadUsersFromFirebase() {
         users.sort();
         window.usersList = users;
         
-        console.log(`✅ Caricati ${users.length} utenti da Firebase:`, users);
-        console.log('📋 Configurazione:', usersConfig);
+        console.log(`✅ Caricati ${users.length} utenti da Firebase`);
         
         return true;
     } catch (error) {
@@ -4093,6 +4038,10 @@ window.initApp = async function() {
         isAppInitialized = false;
         return;
     }
+    
+    // ✅ Inizializza activeFilters con TUTTI gli utenti (per grafico)
+    // NOTA: Se utente è USER, applyUserPermissions() lo ridurrà a solo currentUser
+    activeFilters = new Set(users);
     
     // STEP 3: ORA che usersConfig è caricato, processa MSAL redirect/login
     console.log('✅ usersConfig caricato, ora processo MSAL...');
@@ -4172,7 +4121,7 @@ async function handlePendingRedirect() {
         const redirectResponse = await msalInstance.handleRedirectPromise();
         
         if (redirectResponse && redirectResponse.account) {
-            console.log('✅ Redirect completato, account trovato:', redirectResponse.account.username);
+            console.log('✅ Redirect completato, account trovato');
             
             // Salva account trovato
             msalInstance.setActiveAccount(redirectResponse.account);
@@ -4364,10 +4313,7 @@ function applyAccount(account) {
         throw new Error('Utente non autorizzato');
     }
 
-    // Login riuscito
-    console.log(`Login: ${foundUser} (${usersConfig[foundUser].role})`);
-
-    // Imposta variabili globali
+    // Login riuscito - imposta variabili globali
     currentUser = foundUser;
     currentUserEmail = userEmail;
     currentUserRole = usersConfig[foundUser].role;
@@ -4421,7 +4367,7 @@ async function processRedirect() {
         }
 
         if (active) {
-            console.log('✅ processRedirect: applico account:', active.username);
+            console.log('✅ processRedirect: applico account');
             
             try {
                 applyAccount(active);
@@ -4595,14 +4541,15 @@ function applyUserPermissions() {
     const isUser = currentUserRole === 'user';
 
     if (isUser) {
-        console.log(`Permessi USER: ${currentUser}`);
-
         // 0. Classe body per stile dedicato USER
         document.body.classList.add('user-mode');
 
         // 0b. Nascondi card "Utente con Più Ferie"
         const topUserCard = document.getElementById('topUserCard');
         if (topUserCard) topUserCard.style.display = 'none';
+        
+        // 0c. ✅ Imposta activeFilters solo su currentUser per grafico
+        activeFilters = new Set([currentUser]);
         
         // 1. Nascondi filtri grafico
         const chartFilters = document.getElementById('chartFilters');
@@ -4641,8 +4588,6 @@ function applyUserPermissions() {
         }
         
     } else {
-        console.log(`Permessi ADMIN: ${currentUser}`);
-
         // 0. Rimuovi classe body USER
         document.body.classList.remove('user-mode');
 
