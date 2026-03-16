@@ -2387,6 +2387,54 @@ let activeCell=null;
 let chart=null;
 let dataCache = {};
 let activeFilters = new Set(users);
+let currentYearUnsubscribe = null;
+const FIREBASE_META_KEY = '__meta';
+
+function sanitizeYearData(raw){
+    if(!raw || typeof raw !== 'object') return {};
+    const clean = {};
+    Object.entries(raw).forEach(([k,v]) => {
+        if(k === FIREBASE_META_KEY) return;
+        clean[k] = v;
+    });
+    return clean;
+}
+
+function updateCellVisualState(td, value){
+    if(!td) return;
+    td.textContent = "";
+    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell');
+
+    const isSaturday = td.dataset && td.dataset.saturday === 'true';
+
+    if(isSaturday){
+        td.classList.add('holiday-col');
+        if(value && String(value).startsWith('P-')){
+            td.classList.remove('holiday-col');
+            td.classList.add('presidio-cell');
+            td.textContent = String(value).substring(2);
+        } else if(value){
+            td.textContent = value;
+        }
+        return;
+    }
+
+    if(!value) return;
+    td.textContent = value;
+    if(value === '8') td.classList.add('full-day');
+    else if(String(value).endsWith('M')) td.classList.add('morning-partial');
+    else if(String(value).endsWith('P')) td.classList.add('afternoon-partial');
+}
+
+async function ensureYearRootExists(year){
+    try{
+        const yearRef = window.firebaseDB.ref(`ferie${year}/${FIREBASE_META_KEY}`);
+        await window.firebaseDB.set(yearRef, true);
+    } catch(error){
+        console.error('Errore creazione nodo radice ferie'+year+':', error);
+    }
+}
+
 
 // Selezione multipla
 let selectedCells = [];
@@ -2476,6 +2524,7 @@ async function getFirebaseValue(key) {
 
 async function setFirebaseValue(key, value) {
     try {
+        await ensureYearRootExists(currentYear);
         const dbRef = window.firebaseDB.ref(`ferie${currentYear}/${key}`);
         if (value) {
             await window.firebaseDB.set(dbRef, value);
@@ -2483,34 +2532,40 @@ async function setFirebaseValue(key, value) {
         } else {
             await window.firebaseDB.remove(dbRef);
             delete dataCache[key];
+            await ensureYearRootExists(currentYear);
         }
     } catch (error) {
         console.error("Errore scrittura Firebase:", error);
+        throw error;
     }
 }
 
 function setupRealtimeListener() {
+    if (typeof currentYearUnsubscribe === 'function') {
+        currentYearUnsubscribe();
+        currentYearUnsubscribe = null;
+    }
+
     const dbRef = window.firebaseDB.ref(`ferie${currentYear}`);
-    window.firebaseDB.onValue(dbRef, (snapshot) => {
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            dataCache = data || {};
-            if (!activeCell) {
-                render();
-            }
+    currentYearUnsubscribe = window.firebaseDB.onValue(dbRef, (snapshot) => {
+        const rawData = snapshot.exists() ? snapshot.val() : {};
+        dataCache = sanitizeYearData(rawData);
+        if (!activeCell) {
+            render();
         }
     });
 }
 
 async function loadAllData() {
     try {
+        await ensureYearRootExists(currentYear);
         const dbRef = window.firebaseDB.ref(`ferie${currentYear}`);
         const snapshot = await window.firebaseDB.get(dbRef);
-        if (snapshot.exists()) {
-            dataCache = snapshot.val();
-        }
+        const rawData = snapshot.exists() ? snapshot.val() : {};
+        dataCache = sanitizeYearData(rawData);
     } catch (error) {
         console.error("Errore caricamento dati:", error);
+        dataCache = {};
     }
 }
 
@@ -2887,10 +2942,10 @@ function renderPlanner(){
                     }
                     
                     if(canEditRow){
-                        html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}">${displayValue}</td>`;
+                        html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}" data-saturday="true">${displayValue}</td>`;
                     } else {
                         // Celle non editabili per USER su altri utenti
-                        html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}">${displayValue}</td>`;
+                        html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="true">${displayValue}</td>`;
                     }
                 }
                 // Altri giorni: ferie normali
@@ -2900,10 +2955,10 @@ function renderPlanner(){
                     if(v.endsWith("M"))cls+=" morning-partial";
                     if(v.endsWith("P"))cls+=" afternoon-partial";
                     if(canEditRow){
-                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}">${v}</td>`;
+                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}" data-saturday="false">${v}</td>`;
                 } else {
                     // Celle non editabili per USER su altri utenti
-                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}">${v}</td>`;
+                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="false">${v}</td>`;
                 }
                 }
             }
@@ -3155,33 +3210,29 @@ function clearSelection(){
 }
 
 async function applyMultipleValue(value){
-    // Mostra loading per operazioni batch
     document.getElementById('loadingOverlay').style.display = 'flex';
-    
+
     try {
-        // Update UI e cache locale per tutte le celle
         for(let cell of selectedCells){
-            cell.td.textContent = value;
+            updateCellVisualState(cell.td, value);
             dataCache[cell.key] = value;
         }
-        
-        // Update Firebase in batch
+
         const promises = selectedCells.map(cell => 
             setFirebaseValue(cell.key, value).catch(err => {
                 console.error(`Errore ${cell.key}:`, err);
                 return null;
             })
         );
-        
+
         await Promise.all(promises);
-        
+
         closeSelectionActionsPopup();
         clearSelection();
-        
-        // Aggiorna stats e dashboard
         calculateStats();
         renderDashboard();
-        
+        renderChart();
+
         document.getElementById('loadingOverlay').style.display = 'none';
     } catch(error){
         console.error('Errore batch update:', error);
@@ -3191,33 +3242,29 @@ async function applyMultipleValue(value){
 }
 
 async function clearMultipleValues(){
-    // Mostra loading per operazioni batch
     document.getElementById('loadingOverlay').style.display = 'flex';
-    
+
     try {
-        // Update UI e cache locale per tutte le celle
         for(let cell of selectedCells){
-            cell.td.textContent = '';
+            updateCellVisualState(cell.td, '');
             delete dataCache[cell.key];
         }
-        
-        // Update Firebase in batch
+
         const promises = selectedCells.map(cell => 
             setFirebaseValue(cell.key, '').catch(err => {
                 console.error(`Errore ${cell.key}:`, err);
                 return null;
             })
         );
-        
+
         await Promise.all(promises);
-        
+
         closeSelectionActionsPopup();
         clearSelection();
-        
-        // Aggiorna stats e dashboard
         calculateStats();
         renderDashboard();
-        
+        renderChart();
+
         document.getElementById('loadingOverlay').style.display = 'none';
     } catch(error){
         console.error('Errore batch delete:', error);
@@ -3252,54 +3299,77 @@ function closeModal(){
 }
 
 async function applyValue(v){
-    if(!activeCell)return;
-    
-    // Update UI immediato
-    activeCell.td.textContent=v;
-    
-    // Update cache locale
-    dataCache[activeCell.key] = v;
-    
-    // Chiudi modal
+    if(!activeCell || !activeCell.td || !activeCell.key) return;
+
+    const td = activeCell.td;
+    const key = activeCell.key;
+    const previousValue = dataCache[key] || '';
+
+    updateCellVisualState(td, v);
+
+    if(v){
+        dataCache[key] = v;
+    } else {
+        delete dataCache[key];
+    }
+
     closeModal();
-    
-    // Update Firebase in background
-    setFirebaseValue(activeCell.key, v).catch(err => {
+
+    try {
+        await setFirebaseValue(key, v);
+        calculateStats();
+        renderDashboard();
+        renderChart();
+    } catch(err) {
         console.error('Errore salvataggio Firebase:', err);
+        if(previousValue){
+            dataCache[key] = previousValue;
+        } else {
+            delete dataCache[key];
+        }
+        updateCellVisualState(td, previousValue);
+        calculateStats();
+        renderDashboard();
+        renderChart();
         alert('Errore salvataggio. Riprova.');
-    });
-    
-    // Aggiorna solo stats e dashboard (più veloce di render() completo)
-    calculateStats();
-    renderDashboard();
+    }
 }
 
 async function applyPresidio(){
-    if(!activeCell)return;
-    
-    const presidioNum = document.getElementById("presidioInput").value;
-    if(presidioNum){
-        // Update UI immediato
-        activeCell.td.textContent = presidioNum;
-        
-        // Update cache locale
-        const presidioValue = 'P-' + presidioNum;
-        dataCache[activeCell.key] = presidioValue;
-        
-        // Chiudi modal
-        closeModal();
-        
-        // Update Firebase in background
-        setFirebaseValue(activeCell.key, presidioValue).catch(err => {
-            console.error('Errore salvataggio Firebase:', err);
-            alert('Errore salvataggio. Riprova.');
-        });
-        
-        // Aggiorna solo stats e dashboard
+    if(!activeCell || !activeCell.td || !activeCell.key) return;
+
+    const presidioNum = document.getElementById("presidioInput").value.trim();
+    if(!presidioNum){
+        alert("Inserisci un numero release");
+        return;
+    }
+
+    const td = activeCell.td;
+    const key = activeCell.key;
+    const previousValue = dataCache[key] || '';
+    const presidioValue = 'P-' + presidioNum;
+
+    updateCellVisualState(td, presidioValue);
+    dataCache[key] = presidioValue;
+    closeModal();
+
+    try {
+        await setFirebaseValue(key, presidioValue);
         calculateStats();
         renderDashboard();
-    } else {
-        alert("Inserisci un numero release");
+        renderChart();
+    } catch(err) {
+        console.error('Errore salvataggio Firebase:', err);
+        if(previousValue){
+            dataCache[key] = previousValue;
+        } else {
+            delete dataCache[key];
+        }
+        updateCellVisualState(td, previousValue);
+        calculateStats();
+        renderDashboard();
+        renderChart();
+        alert('Errore salvataggio. Riprova.');
     }
 }
 
@@ -3425,7 +3495,7 @@ function openUserAnalysis(username){
         userDays[u] = 0;
         months.forEach((m, mi) => {
             for(let d = 1; d <= m.d; d++){
-                const key = `${u}-${currentYear}-${mi}-${d}`;
+                const key = `${u}-${currentYear}-${mi + 1}-${d}`;
                 userDays[u] += parseDays(dataCache[key] || "");
             }
         });
@@ -3492,7 +3562,7 @@ function calculateUserStats(username){
     let inPeriod = false;
     months.forEach((m, mi) => {
         for(let d = 1; d <= m.d; d++){
-            const key = `${username}-${currentYear}-${mi}-${d}`;
+            const key = `${username}-${currentYear}-${mi + 1}-${d}`;
             const value = dataCache[key] || "";
             if(parseDays(value) > 0){
                 if(!inPeriod){
@@ -4020,6 +4090,7 @@ window.initApp = async function() {
     if (!usersLoaded) {
         document.getElementById('loadingOverlay').style.display = 'none';
         console.error('❌ Inizializzazione bloccata: Caricamento utenti fallito');
+        isAppInitialized = false;
         return;
     }
     
