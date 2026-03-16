@@ -29,7 +29,7 @@
     messagingSenderId: "446844390254",
     appId: "1:446844390254:web:266509bb7b2bde01680f7f"
   };
-  
+
   const app = initializeApp(firebaseConfig);
   const database = getDatabase(app);
   const auth = getAuth(app);
@@ -3899,7 +3899,15 @@ window.initApp = async function() {
         return;
     }
     
-    // STEP 3: Inizializza resto dell'app
+    // STEP 3: ORA che usersConfig è caricato, processa MSAL redirect/login
+    console.log('✅ usersConfig caricato, ora processo MSAL...');
+    if (msalInstance) {
+        await processRedirect();
+    } else {
+        console.warn('⚠️ MSAL non inizializzato, aspetto...');
+    }
+    
+    // STEP 4: Inizializza resto dell'app
     loadTheme();
     await loadAllData();
     setupRealtimeListener();
@@ -3987,8 +3995,9 @@ function initLogin() {
     // Inizializza MSAL in modo protetto
     try {
         msalInstance = new msal.PublicClientApplication(msalConfig);
-        // Consuma eventuale ritorno da loginRedirect e, se già loggato, mostra la landing.
-        processRedirect();
+        // ⚠️ NON chiamare processRedirect() qui!
+        // Sarà chiamato da initApp() DOPO aver caricato usersConfig
+        console.log('✅ MSAL inizializzato, in attesa di usersConfig...');
     } catch (err) {
         console.error('Errore inizializzazione MSAL:', err);
         if (loginError) {
@@ -4112,6 +4121,11 @@ async function processRedirect() {
             if (window.location.hash && window.location.hash.includes('code=')) {
                 history.replaceState(null, '', window.location.pathname + window.location.search);
             }
+        } else {
+            // Nessun account MSAL trovato - mostra schermata login
+            console.log('ℹ️ Nessun account MSAL, mostro schermata login');
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
         }
     } catch (err) {
         console.error('Errore processo redirect:', err.message);
@@ -4326,24 +4340,8 @@ function applyUserPermissions() {
 
 
 
-window.addEventListener('DOMContentLoaded', () => {
-    const savedUser = sessionStorage.getItem('currentUser');
-    const savedRole = sessionStorage.getItem('currentUserRole');
-    const savedAccount = sessionStorage.getItem('msalAccount');
-    
-    if (savedUser && savedRole && savedAccount) {
-        // Ripristina sessione
-        currentUser = savedUser;
-        currentUserRole = savedRole;
-        currentUserEmail = JSON.parse(savedAccount).username;
-        
-        // Mostra app
-        showApp();
-    } else {
-        // Mostra login
-        document.getElementById('loginPage').style.display = 'flex';
-    }
-});
+// Session recovery rimosso - gestito da processRedirect() in initApp()
+// MSAL gestisce già la persistenza degli account
 
 // Espone funzioni per eventuali riferimenti esterni (fallback)
 window.signIn = signIn;
