@@ -47,11 +47,8 @@
     auth: auth
   };
 
-  window.addEventListener('DOMContentLoaded', () => {
-    if (window.initApp) {
-      window.initApp();
-    }
-  });
+  // ✅ RIMOSSO: DOMContentLoaded causava loop infinito
+  // initApp() viene chiamato SOLO da showApp() dopo login MSAL
 </script>
 
 <style>
@@ -2530,7 +2527,8 @@ function calculateStats(){
         userDays[u] = 0;
         months.forEach((m, mi) => {
             for(let d = 1; d <= m.d; d++){
-                const key = `${u}-${currentYear}-${mi}-${d}`;
+                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+                const key = `${u}-${currentYear}-${mi + 1}-${d}`;
                 const days = parseDays(dataCache[key]);
                 totalDays += days;
                 userDays[u] += days;
@@ -2642,7 +2640,8 @@ function renderChart(){
                 data: months.map((m, mi) => {
                     let days = 0;
                     for(let d = 1; d <= m.d; d++){
-                        const key = `${u}-${currentYear}-${mi}-${d}`;
+                        // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+                        const key = `${u}-${currentYear}-${mi + 1}-${d}`;
                         days += parseDays(dataCache[key]);
                     }
                     return days;
@@ -2868,7 +2867,8 @@ function renderPlanner(){
             html+=`<tr${rowClass}><td class="member-name${cellClass}">${u}</td>`;
             for(let d=1;d<=m.d;d++){
                 const wd=new Date(currentYear,mi,d).getDay();
-                const key=`${u}-${currentYear}-${mi}-${d}`;
+                // ✅ Mese 1-indexed per database: gennaio=1, febbraio=2, etc.
+                const key=`${u}-${currentYear}-${mi + 1}-${d}`;
                 const v=dataCache[key]||"";
                 
                 // Domeniche e festivi: non editabili
@@ -2927,7 +2927,8 @@ function renderDashboard(){
         let days=0;
         months.forEach((m,mi)=>{
             for(let d=1;d<=m.d;d++){
-                const key = `${u}-${currentYear}-${mi}-${d}`;
+                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+                const key = `${u}-${currentYear}-${mi + 1}-${d}`;
                 days+=parseDays(dataCache[key]);
             }
         });
@@ -3366,7 +3367,8 @@ async function applyRangeHolidays(){
             
             if(dayOfWeek !== 0 && dayOfWeek !== 6 && !monthData.h.includes(day)){
                 datesToInsert.push({
-                    key: `${user}-${year}-${month}-${day}`,
+                    // ✅ Mese 1-indexed per database: gennaio=1, febbraio=2, etc.
+                    key: `${user}-${year}-${month + 1}-${day}`,
                     year: year,
                     month: month,
                     day: day
@@ -3452,7 +3454,8 @@ function calculateUserStats(username){
     // Calcola dati per ogni mese
     months.forEach((m, mi) => {
         for(let d = 1; d <= m.d; d++){
-            const key = `${username}-${currentYear}-${mi}-${d}`;
+            // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+            const key = `${username}-${currentYear}-${mi + 1}-${d}`;
             const value = dataCache[key] || "";
             const days = parseDays(value);
             
@@ -3606,7 +3609,8 @@ function showMonthDetails(username, monthIndex){
     let hasHolidays = false;
     
     for(let d = 1; d <= m.d; d++){
-        const key = `${username}-${currentYear}-${monthIndex}-${d}`;
+        // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+        const key = `${username}-${currentYear}-${monthIndex + 1}-${d}`;
         const value = dataCache[key] || "";
         const days = parseDays(value);
         
@@ -3706,7 +3710,8 @@ function exportToExcel(){
         users.forEach(u=>{
             const row=[u];
             for(let d=1;d<=m.d;d++){
-                const key = `${u}-${currentYear}-${mi}-${d}`;
+                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+                const key = `${u}-${currentYear}-${mi + 1}-${d}`;
                 row.push(dataCache[key]||"");
             }
             aoa.push(row);
@@ -3751,7 +3756,8 @@ function exportToPDF(){
         userDays[u] = 0;
         months.forEach((m, mi) => {
             for(let d = 1; d <= m.d; d++){
-                const key = u + '-' + currentYear + '-' + mi + '-' + d;
+                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+                const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
                 const days = parseDays(dataCache[key] || "");
                 totalDays += days;
                 userDays[u] += days;
@@ -3847,7 +3853,8 @@ function exportToPDF(){
             html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ddd;padding:1px 2px;font-size:7px;">' + userName + '</td>';
             for(let d = 1; d <= m.d; d++){
                 const wd = new Date(currentYear, mi, d).getDay();
-                const key = u + '-' + currentYear + '-' + mi + '-' + d;
+                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+                const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
                 const v = dataCache[key] || "";
                 
                 // Domeniche e festivi
@@ -3990,12 +3997,21 @@ async function loadUsersFromFirebase() {
 // ================= INIT APP =================
 
 window.initApp = async function() {
-    // STEP 1: Autentica con Firebase (richiesto dalle Security Rules)
+    // ✅ Previeni inizializzazioni multiple
+    if (isAppInitialized) {
+        console.log('⚠️ App già inizializzata, skip...');
+        return;
+    }
+    
+    isAppInitialized = true;
     console.log('🚀 Inizializzazione app...');
+    
+    // STEP 1: Autentica con Firebase (richiesto dalle Security Rules)
     const firebaseAuthSuccess = await authenticateFirebase();
     if (!firebaseAuthSuccess) {
         document.getElementById('loadingOverlay').style.display = 'none';
         console.error('❌ Inizializzazione bloccata: Firebase Auth fallita');
+        isAppInitialized = false; // Reset flag per permettere retry
         return;
     }
     
@@ -4261,6 +4277,9 @@ let currentUser = null;
 let currentUserEmail = null;
 let currentUserRole = null;
 
+// Flag per evitare inizializzazioni multiple
+let isAppInitialized = false;
+
 // Variabili globali UI
 window.dashboardSortDescending = true; // Default: ordinamento decrescente
 
@@ -4456,11 +4475,8 @@ window.signIn = signIn;
 window.signOut = typeof signOut === 'function' ? signOut : undefined;
 </script>
 
-<script>
-if (window.firebaseDB) {
-    window.initApp();
-}
-</script>
+<!-- ✅ RIMOSSO: Script inline causava loop infinito -->
+<!-- initApp() viene chiamato SOLO da showApp() dopo login MSAL -->
 
 </body>
 </html>
