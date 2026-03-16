@@ -4103,6 +4103,13 @@ function initLogin() {
     // Aggancia handler click (sempre)
     loginBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        
+        // ✅ Previeni click multipli durante login
+        if (loginInProgress) {
+            console.log('⚠️ Login già in corso, attendere...');
+            return;
+        }
+        
         signIn();
     });
 
@@ -4135,6 +4142,9 @@ document.addEventListener('DOMContentLoaded', initLogin);
 
 // Inizializza MSAL (inizializzazione sicura dopo il caricamento di MSAL)
 let msalInstance = null;
+
+// ✅ Flag per prevenire click multipli durante login
+let loginInProgress = false;
 
 /**
  * Applica l'account MSAL alla logica applicativa (mappa email -> utente autorizzato),
@@ -4295,6 +4305,15 @@ async function signIn() {
         return;
     }
 
+    // ✅ Controllo doppio: se già in progress, esci
+    if (loginInProgress) {
+        console.log('⚠️ Login già in corso, skip...');
+        return;
+    }
+    
+    // ✅ Imposta flag PRIMA di chiamare MSAL
+    loginInProgress = true;
+
     const loginBtn = document.getElementById('loginBtn');
     const loginLoading = document.getElementById('loginLoading');
     const loginError = document.getElementById('loginError');
@@ -4312,12 +4331,27 @@ async function signIn() {
         // Nota: il codice sotto non viene eseguito perché la pagina verrà rediretta.
     } catch (error) {
         console.error('Errore login:', error);
-        if (loginError) {
-            loginError.textContent = error.message || 'Errore durante l\'accesso. Riprova.';
-            loginError.style.display = 'block';
+        
+        // ✅ Reset flag in caso di errore
+        loginInProgress = false;
+        
+        // ✅ Gestione errore specifico "interaction_in_progress"
+        if (error.errorCode === 'interaction_in_progress') {
+            console.log('⚠️ Interazione già in corso, attendere redirect...');
+            if (loginError) {
+                loginError.textContent = 'Login in corso... Attendere il completamento.';
+                loginError.style.display = 'block';
+            }
+            // NON riabilitare il bottone, lascia che il redirect completi
+        } else {
+            // Altri errori: mostra messaggio e riabilita bottone
+            if (loginError) {
+                loginError.textContent = error.message || 'Errore durante l\'accesso. Riprova.';
+                loginError.style.display = 'block';
+            }
+            if (loginBtn) loginBtn.disabled = false;
+            if (loginLoading) loginLoading.style.display = 'none';
         }
-        if (loginBtn) loginBtn.disabled = false;
-        if (loginLoading) loginLoading.style.display = 'none';
     }
 }
 
