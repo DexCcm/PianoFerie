@@ -2044,7 +2044,7 @@ body.user-mode #dashboardTable th{
     </button>
 </div>
 
-<h1>Piano Ferie Annuale <span id="yearLabel">2026</span></h1>
+<h1>Planner Annuale <span id="yearLabel">2026</span></h1>
 
 <div style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
     <button class="nav-btn" onclick="changeYear(-1)">
@@ -2433,7 +2433,6 @@ let dataCache = {};
 let activeFilters = new Set(users);
 let currentYearUnsubscribe = null;
 const FIREBASE_META_KEY = '__meta';
-let isWriting = false; // Flag anti-race-condition: blocca re-render da onValue durante scritture
 
 function sanitizeYearData(raw){
     if(!raw || typeof raw !== 'object') return {};
@@ -2595,9 +2594,7 @@ function setupRealtimeListener() {
     currentYearUnsubscribe = window.firebaseDB.onValue(dbRef, (snapshot) => {
         const rawData = snapshot.exists() ? snapshot.val() : {};
         dataCache = sanitizeYearData(rawData);
-        // Non fare re-render se: c'è un modale aperto OPPURE è in corso una scrittura
-        // (evita race condition tra optimistic update locale e snapshot Firebase)
-        if (!activeCell && !isWriting) {
+        if (!activeCell) {
             render();
         }
     });
@@ -3260,7 +3257,6 @@ function clearSelection(){
 
 async function applyMultipleValue(value){
     document.getElementById('loadingOverlay').style.display = 'flex';
-    isWriting = true; // Blocca onValue durante il batch
 
     try {
         for(let cell of selectedCells){
@@ -3288,14 +3284,11 @@ async function applyMultipleValue(value){
         console.error('Errore batch update:', error);
         document.getElementById('loadingOverlay').style.display = 'none';
         alert('Errore durante il salvataggio. Riprova.');
-    } finally {
-        isWriting = false;
     }
 }
 
 async function clearMultipleValues(){
     document.getElementById('loadingOverlay').style.display = 'flex';
-    isWriting = true; // Blocca onValue durante il batch
 
     try {
         for(let cell of selectedCells){
@@ -3323,8 +3316,6 @@ async function clearMultipleValues(){
         console.error('Errore batch delete:', error);
         document.getElementById('loadingOverlay').style.display = 'none';
         alert('Errore durante la cancellazione. Riprova.');
-    } finally {
-        isWriting = false;
     }
 }
 
@@ -3369,7 +3360,6 @@ async function applyValue(v){
     }
 
     closeModal();
-    isWriting = true; // Blocca onValue durante la scrittura
 
     try {
         await setFirebaseValue(key, v);
@@ -3388,8 +3378,6 @@ async function applyValue(v){
         renderDashboard();
         renderChart();
         alert('Errore salvataggio. Riprova.');
-    } finally {
-        isWriting = false; // Sempre rilasciato, anche in caso di errore
     }
 }
 
@@ -3410,7 +3398,6 @@ async function applyPresidio(){
     updateCellVisualState(td, presidioValue);
     dataCache[key] = presidioValue;
     closeModal();
-    isWriting = true; // Blocca onValue durante la scrittura
 
     try {
         await setFirebaseValue(key, presidioValue);
@@ -3429,8 +3416,6 @@ async function applyPresidio(){
         renderDashboard();
         renderChart();
         alert('Errore salvataggio. Riprova.');
-    } finally {
-        isWriting = false; // Sempre rilasciato, anche in caso di errore
     }
 }
 
@@ -3849,22 +3834,22 @@ function exportToExcel(){
         });
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), m.n);
     });
-    XLSX.writeFile(wb,`Piano_Ferie_${currentYear}.xlsx`);
+    XLSX.writeFile(wb,`Planner_Ferie_${currentYear}.xlsx`);
 }
 
 // ================= EXPORT TO PDF =================
 
 function exportToPDF(){
     // Determina nome file
-    let fileName = `Piano_Ferie_2026`;
+    let fileName = `Planner_Ferie_2026`;
     if(viewMode === 'month'){
-        fileName = `Piano_Ferie_${months[currentMonth].n}_2026`;
+        fileName = `Planner_Ferie_${months[currentMonth].n}_2026`;
     } else if(viewMode === 'quarter'){
         const q = Math.floor(currentMonth/3) + 1;
-        fileName = `Piano_Ferie_Q${q}_2026`;
+        fileName = `Planner_Ferie_Q${q}_2026`;
     } else if(viewMode === 'half'){
         const h = currentMonth < 6 ? 1 : 2;
-        fileName = `Piano_Ferie_Semestre${h}_2026`;
+        fileName = `Planner_Ferie_Semestre${h}_2026`;
     }
     
     // Determina quali mesi includere
@@ -3882,7 +3867,7 @@ function exportToPDF(){
     let html = '<div style="font-family:Arial,sans-serif;padding:20px;background:white;">';
     
     // Titolo
-    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Piano Ferie ' + currentYear + '</h1>';
+    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Planner Ferie ' + currentYear + '</h1>';
     
     // Calendari (3 mesi per foglio per visualizzazioni da trimestre in su)
     monthsToExport.forEach((mi, idx) => {
@@ -4607,11 +4592,8 @@ function applyUserPermissions() {
             chartFilters.style.display = 'none';
         }
 
-        // 2. Nascondi bottone "Inserisci Ferie"
-        const insertBtn = document.getElementById('insertHolidaysBtn');
-        if (insertBtn) {
-            insertBtn.style.display = 'none';
-        }
+        // 2. Bottone "Inserisci Ferie" visibile anche per USER
+        // (il modale openRangeModal() pre-seleziona solo currentUser e disabilita il select)
         
         // 3. Nascondi toggle grafico (solo ADMIN può espandere/comprimere)
         const chartToggleHeader = document.getElementById('chartToggleHeader');
@@ -4651,11 +4633,7 @@ function applyUserPermissions() {
             chartFilters.style.display = '';
         }
         
-        // Ripristina visibilità bottone inserisci ferie
-        const insertBtn = document.getElementById('insertHolidaysBtn');
-        if (insertBtn) {
-            insertBtn.style.display = '';
-        }
+        // Bottone "Inserisci Ferie" sempre visibile per ADMIN
         
         // Ripristina toggle grafico per ADMIN
         const chartToggleHeader = document.getElementById('chartToggleHeader');
@@ -4674,10 +4652,14 @@ function applyUserPermissions() {
         }
     }
     
-    // Floating Gatta - Visibile per tutti gli utenti su desktop (nascosta su mobile via CSS)
+    // Floating Gatta - Solo per Viscomi (Easter Egg)
     const floatingGatta = document.getElementById('floatingGatta');
     if (floatingGatta) {
-        floatingGatta.style.display = 'block';
+        if (currentUser === 'Viscomi') {
+            floatingGatta.style.display = 'block';
+        } else {
+            floatingGatta.style.display = 'none';
+        }
     }
 
 }
