@@ -47,8 +47,6 @@
     auth: auth
   };
 
-  // ✅ RIMOSSO: DOMContentLoaded causava loop infinito
-  // initApp() viene chiamato SOLO da showApp() dopo login MSAL
 </script>
 
 <style>
@@ -841,8 +839,8 @@ h1{
     font-size:20px;
     font-weight:700;
     color:var(--title-blue);
-    margin-bottom:12px;
-    padding:10px 0;
+    margin-bottom:4px;
+    padding:8px 0;
     text-align:center;
     background:var(--bg-secondary);
     border-radius:8px 8px 0 0;
@@ -2387,6 +2385,41 @@ const yearsData = {
         {n:"Dicembre",s:"Dic",d:31,h:[8,25,26]}          // 8: Immacolata, 25: Natale, 26: S.Stefano
     ]
 };
+const holidayNames = {
+    2026: {
+        "1-1": "Capodanno",
+        "1-6": "Epifania",
+        "4-5": "Pasqua",
+        "4-6": "Lunedì dell'Angelo",
+        "4-25": "Festa della Liberazione",
+        "5-1": "Festa dei Lavoratori",
+        "6-2": "Festa della Repubblica",
+        "8-15": "Ferragosto",
+        "11-1": "Ognissanti",
+        "12-8": "Immacolata Concezione",
+        "12-25": "Natale",
+        "12-26": "Santo Stefano"
+    },
+    2027: {
+        "1-1": "Capodanno",
+        "1-6": "Epifania",
+        "3-28": "Pasqua",
+        "3-29": "Lunedì dell'Angelo",
+        "4-25": "Festa della Liberazione",
+        "5-1": "Festa dei Lavoratori",
+        "6-2": "Festa della Repubblica",
+        "8-15": "Ferragosto",
+        "11-1": "Ognissanti",
+        "12-8": "Immacolata Concezione",
+        "12-25": "Natale",
+        "12-26": "Santo Stefano"
+    }
+};
+
+function getHolidayName(year, monthIndex, day){
+    const month = monthIndex + 1;
+    return holidayNames[year]?.[`${month}-${day}`] || "Festività";
+}
 
 let currentYear = new Date().getFullYear(); // Anno corrente dinamico
 if(!yearsData[currentYear]) currentYear = 2026; // Fallback se anno non disponibile
@@ -2937,28 +2970,30 @@ function renderPlanner(){
                 const key=`${u}-${currentYear}-${mi + 1}-${d}`;
                 const v=dataCache[key]||"";
                 
-                // Domeniche e festivi: non editabili, mostrano "F"
-                if(wd===0||m.h.includes(d)){
-                    html+=`<td class="holiday-col">F</td>`;
+            if(wd === 0){
+                html+=`<td class="holiday-col" title="Domenica">D</td>`;
+            }
+            else if(wd === 6){
+                let displayValue = v || "S";
+                let cls = "editable holiday-col";
+                let titleText = "Sabato";
+
+                if(v.startsWith('P-')){
+                    displayValue = v.substring(2);
+                    cls = "editable presidio-cell";
+                    titleText = "Sabato - Presidio Allianz";
                 }
-                // Sabati: editabili per presidio
-                else if(wd===6){
-                    let displayValue = v;
-                    let cls = "editable holiday-col"; // Default giallo come domenica
-                    
-                    // Se ha presidio (P-), diventa blu scuro
-                    if(v.startsWith('P-')){
-                        displayValue = v.substring(2);
-                        cls = "editable presidio-cell";
-                    }
-                    
-                    if(canEditRow){
-                        html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}" data-saturday="true">${displayValue}</td>`;
-                    } else {
-                        // Celle non editabili per USER su altri utenti
-                        html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="true">${displayValue}</td>`;
-                    }
+
+                if(canEditRow){
+                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}" data-saturday="true" title="${titleText}">${displayValue}</td>`;
+                } else {
+                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="true" title="${titleText}">${displayValue}</td>`;
                 }
+            }
+            else if(m.h.includes(d)){
+                const holidayName = getHolidayName(currentYear, mi, d);
+                html+=`<td class="holiday-col" title="${holidayName}">F</td>`;
+            }
                 // Altri giorni: ferie normali
                 else{
                     let cls="editable";
@@ -3873,25 +3908,25 @@ function exportToPDF(){
                 const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
                 const v = dataCache[key] || "";
                 
-                // Domeniche e festivi - mostrano "F"
-                if(wd === 0 || m.h.includes(d)){
-                    html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;color:#78350f;font-weight:bold;">F</td>';
+            if(wd === 0){
+                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;color:#78350f;font-weight:bold;">D</td>';
+            }
+            else if(wd === 6){
+                let displayValue = v || "S";
+                let bgColor = '#fef3c7';
+                let textColor = '#78350f';
+
+                if(v.startsWith && v.startsWith('P-')){
+                    displayValue = v.substring(2);
+                    bgColor = '#2F5BD4';
+                    textColor = '#ffffff';
                 }
-                // Sabati (presidio)
-                else if(wd === 6){
-                    let displayValue = v;
-                    let bgColor = '#fef3c7'; // Giallo default
-                    let textColor = '#78350f';
-                    
-                    // Se ha presidio diventa blu scuro con testo bianco
-                    if(v.startsWith && v.startsWith('P-')){
-                        displayValue = v.substring(2);
-                        bgColor = '#2F5BD4';
-                        textColor = '#ffffff';
-                    }
-                    
-                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:7px;">' + displayValue + '</td>';
-                }
+
+                html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:7px;">' + displayValue + '</td>';
+            }
+            else if(m.h.includes(d)){
+                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;color:#78350f;font-weight:bold;">F</td>';
+            }
                 // Altri giorni (ferie)
                 else {
                     let bgColor = 'white';
