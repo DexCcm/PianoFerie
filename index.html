@@ -1726,6 +1726,7 @@ body.user-mode #dashboardTable th{
 }
 
 /*[PRESIDIO ]*/
+  
 .user-own-row td.presidio-cell {
     background: #172754;
     color: white;
@@ -3346,11 +3347,11 @@ function openModal(td,key,day,month,isSaturday){
         document.getElementById("presidioContent").style.display = "none";
     }
    
-    // Mostra sempre il contenuto ferie normali (presidio disabilitato)
+    /* Mostra sempre il contenuto ferie normali (presidio disabilitato) --COMMENTATO
     document.getElementById("modalTitle").textContent = "Imposta ferie";
     document.getElementById("normalContent").style.display = "block";
     document.getElementById("presidioContent").style.display = "none";
-    
+    */
     document.getElementById("modal").style.display="flex";
 }
 
