@@ -1318,12 +1318,14 @@ td.afternoon-partial{background:#e6dbff;color:#4b2dbf;font-weight:600}
 }
 
 /* ================= PRESIDIO SABATO ================= */
+
 .presidio-cell {
     background: #1e3a8a !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     font-size: 11px !important;
 }
+
 
 /* ================= SELEZIONE MULTIPLA ================= */
 .cell-selected {
@@ -1723,11 +1725,12 @@ body.user-mode #dashboardTable th{
     color: #fda4af; /* Rose-300 per testo leggibile */
 }
 
-/* Celle presidio mantengono colore */
+/*[PRESIDIO ]*/
 .user-own-row td.presidio-cell {
-    background: #172754; /* Preservato */
+    background: #172754;
     color: white;
 }
+
 
 /* Cursore not-allowed su celle altri utenti per USER */
 .user-not-editable-cell {
@@ -2203,7 +2206,7 @@ body.user-mode #dashboardTable th{
         </div>
     </div>
 
-    <!-- Contenuto per Presidio Sabato -->
+    <!-- [PRESIDIO ] -->
     <div id="presidioContent" style="display:none;">
         <div class="modal-section">
             <div class="modal-section-title">Release Allianz</div>
@@ -2212,6 +2215,9 @@ body.user-mode #dashboardTable th{
         </div>
         <button class="btn-full-day" onclick="applyPresidio()" style="margin-top:12px;">Conferma</button>
     </div>
+    
+    <!-- Placeholder vuoto per presidioContent (richiesto da openModal) -->
+    <div id="presidioContent" style="display:none;"></div>
 
     <div class="modal-footer">
         <div class="remove-link" onclick="applyValue('')">Rimuovi valore</div>
@@ -2459,6 +2465,8 @@ function updateCellVisualState(td, value){
             td.textContent = String(value).substring(2);
         } else if(value){
             td.textContent = value;
+        } else {
+            td.textContent = "S"; // Ripristina "S" quando il valore viene rimosso
         }
         return;
     }
@@ -2978,11 +2986,13 @@ function renderPlanner(){
                 let cls = "editable holiday-col";
                 let titleText = "Sabato";
 
+                /* [PRESIDIO] */
                 if(v.startsWith('P-')){
                     displayValue = v.substring(2);
                     cls = "editable presidio-cell";
                     titleText = "Sabato - Presidio Allianz";
                 }
+                
 
                 if(canEditRow){
                     html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}" data-saturday="true" title="${titleText}">${displayValue}</td>`;
@@ -3324,7 +3334,7 @@ function openModal(td,key,day,month,isSaturday){
     document.getElementById("modalDate").textContent=
         `${day} ${months[month].n} ${currentYear}`;
     
-    // Se è sabato, mostra contenuto presidio
+    /* [PRESIDIO - ]  */
     if(isSaturday){
         document.getElementById("modalTitle").textContent = "Presidio Allianz";
         document.getElementById("normalContent").style.display = "none";
@@ -3335,6 +3345,11 @@ function openModal(td,key,day,month,isSaturday){
         document.getElementById("normalContent").style.display = "block";
         document.getElementById("presidioContent").style.display = "none";
     }
+   
+    // Mostra sempre il contenuto ferie normali (presidio disabilitato)
+    document.getElementById("modalTitle").textContent = "Imposta ferie";
+    document.getElementById("normalContent").style.display = "block";
+    document.getElementById("presidioContent").style.display = "none";
     
     document.getElementById("modal").style.display="flex";
 }
@@ -4592,8 +4607,11 @@ function applyUserPermissions() {
             chartFilters.style.display = 'none';
         }
 
-        // 2. Bottone "Inserisci Ferie" visibile anche per USER
-        // (il modale openRangeModal() pre-seleziona solo currentUser e disabilita il select)
+        // 2. Nascondi bottone "Inserisci Ferie"
+        const insertBtn = document.getElementById('insertHolidaysBtn');
+        if (insertBtn) {
+            insertBtn.style.display = 'none';
+        }
         
         // 3. Nascondi toggle grafico (solo ADMIN può espandere/comprimere)
         const chartToggleHeader = document.getElementById('chartToggleHeader');
@@ -4633,7 +4651,11 @@ function applyUserPermissions() {
             chartFilters.style.display = '';
         }
         
-        // Bottone "Inserisci Ferie" sempre visibile per ADMIN
+        // Ripristina visibilità bottone inserisci ferie
+        const insertBtn = document.getElementById('insertHolidaysBtn');
+        if (insertBtn) {
+            insertBtn.style.display = '';
+        }
         
         // Ripristina toggle grafico per ADMIN
         const chartToggleHeader = document.getElementById('chartToggleHeader');
