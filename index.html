@@ -2460,7 +2460,7 @@ function updateCellVisualState(td, value){
 
     if(isSaturday){
         td.classList.add('holiday-col');
-        if(value && String(value).startsWith('P-')){
+        if(value && String(value).startsWith('R-')){
             td.classList.remove('holiday-col');
             td.classList.add('presidio-cell');
             td.textContent = String(value).substring(2);
@@ -2495,7 +2495,7 @@ let lastClickedCell = null;
 
 const parseHours=v=>{
     if(!v) return 0;
-    if(v.startsWith && v.startsWith('P-')) return 0; // Presidio non conta come ferie
+    if(v.startsWith && v.startsWith('R-')) return 0; // Presidio non conta come ferie
     if(v==="8") return 8;
     return parseInt(v);
 };
@@ -2988,7 +2988,7 @@ function renderPlanner(){
                 let titleText = "Sabato";
 
                 /* [PRESIDIO] */
-                if(v.startsWith('P-')){
+                if(v.startsWith('R-')){
                     displayValue = v.substring(2);
                     cls = "editable presidio-cell";
                     titleText = "Sabato - Release Allianz";
@@ -3409,7 +3409,7 @@ async function applyPresidio(){
     const td = activeCell.td;
     const key = activeCell.key;
     const previousValue = dataCache[key] || '';
-    const presidioValue = 'P-' + presidioNum;
+    const presidioValue = 'R-' + presidioNum;
 
     updateCellVisualState(td, presidioValue);
     dataCache[key] = presidioValue;
@@ -3932,7 +3932,7 @@ function exportToPDF(){
                 let bgColor = '#fef3c7';
                 let textColor = '#78350f';
 
-                if(v.startsWith && v.startsWith('P-')){
+                if(v.startsWith && v.startsWith('R-')){
                     displayValue = v.substring(2);
                     bgColor = '#2F5BD4';
                     textColor = '#ffffff';
