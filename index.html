@@ -2295,7 +2295,7 @@ body.user-mode #dashboardTable th{
             <div class="stat-subvalue" id="peakDays">0 giorni</div>
         </div>
         <div class="stat-card" id="topUserCard" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
-            <div class="stat-label">Utente con Più Ferie</div>
+            <div class="stat-label">Utente con più ferie inserite</div>
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
         </div>
@@ -4844,7 +4844,7 @@ function applyUserPermissions() {
         // 0. Rimuovi classe body USER
         document.body.classList.remove('user-mode');
 
-        // 0b. Ripristina card "Utente con Più Ferie"
+        // 0b. Ripristina card "Utente con più Ferie Inserite"
         const topUserCard = document.getElementById('topUserCard');
         if (topUserCard) topUserCard.style.display = '';
         
@@ -4878,7 +4878,7 @@ function applyUserPermissions() {
     if (floatingGatta) {
         const userGifByEmail = {
             'simone.viscomi@dataexpert.it': 'gatta.gif',
-            'angioletti@dataexpert.it': 'RanaSpecchio.gif'
+            'damiano.angioletti@dataexpert.it': 'RanaSpecchio.gif'
         };
 
         const normalizedEmail = ((usersConfig?.[currentUser]?.email) || currentUserEmail || '').toLowerCase().trim();
