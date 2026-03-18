@@ -398,6 +398,18 @@
         z-index: 15 !important;
         background: var(--bg-secondary) !important;
     }
+    /* ── Titolo mese sticky su mobile: rimane visibile mentre si scrolla ── */
+    .planner-month-title {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        font-size: 16px;
+        padding: 7px 0;
+        margin-bottom: 0;
+        border-radius: 0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
     /* Indicatore "scorri" sul planner */
     .planner-scroll-hint {
         display: block;
@@ -3102,9 +3114,7 @@ function renderPlanner(){
         
         // Aggiungo titolo mese sopra ogni planner
         let html='';
-        if(viewMode !== 'month'){
-            html+=`<div class="planner-month-title">${m.n} ${currentYear}</div>`;
-        }
+        html+=`<div class="planner-month-title">${m.n} ${currentYear}</div>`;
         
         html+=`<div class="planner-box"><table class="planner"><thead>
         <tr class="weekday-row">
