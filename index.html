@@ -231,7 +231,7 @@
 
     /* ── Body ── */
     body {
-        padding: 8px 8px 80px; /* bottom: spazio per la barra fissa */
+        padding: 8px 8px 100px; /* bottom: spazio generoso per la barra fissa (64px barra + 36px margine) */
     }
 
     /* ── Login ── */
@@ -299,7 +299,7 @@
         min-width: 130px;
     }
 
-    /* ── View mode bar: solo Mese e Trimestre visibili, resto in ⋯ ── */
+    /* ── View mode bar: scroll orizzontale per contenere tutti i bottoni ── */
     .view-mode-bar {
         gap: 6px;
         padding: 0 0 10px;
@@ -314,10 +314,7 @@
         font-size: 13px;
         white-space: nowrap;
     }
-    /* Nascondi Semestre, Anno, PDF, Excel direttamente nella view-bar su mobile */
-    .view-btn-hide-mobile {
-        display: none !important;
-    }
+    /* Nessun bottone nascosto: tutti visibili con scroll orizzontale */
 
     /* ── Hint SHIFT+Click: inutile su touch ── */
     .shift-hint {
@@ -2236,10 +2233,10 @@ body.user-mode #dashboardTable th{
 <div class="view-mode-bar">
     <button class="view-btn active" onclick="setView('month',this)">Mese</button>
     <button class="view-btn" onclick="setView('quarter',this)">Trimestre</button>
-    <button class="view-btn view-btn-hide-mobile" onclick="setView('half',this)">Semestre</button>
-    <button class="view-btn view-btn-hide-mobile" onclick="setView('year',this)">Anno</button>
-    <button class="view-btn view-btn-hide-mobile" onclick="exportToPDF()">⬇︎ PDF</button>
-    <button class="view-btn view-btn-hide-mobile" onclick="exportToExcel()">⬇︎ Excel</button>
+    <button class="view-btn" onclick="setView('half',this)">Semestre</button>
+    <button class="view-btn" onclick="setView('year',this)">Anno</button>
+    <button class="view-btn" onclick="exportToPDF()">⬇︎ PDF</button>
+    <button class="view-btn" onclick="exportToExcel()">⬇︎ Excel</button>
 </div>
 
 <!-- Bottone Inserisci Ferie Animato -->
