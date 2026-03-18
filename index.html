@@ -3989,7 +3989,7 @@ function showMonthDetails(username, monthIndex){
         timeline.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🏖️</div>
-                <div>Nessuna feria in ${m.n} ${currentYear}</div>
+                <div>Nessun permesso/ferie in ${m.n} ${currentYear}</div>
             </div>
         `;
     }
@@ -4873,13 +4873,13 @@ function applyUserPermissions() {
         }
     }
     
-    // Floating Gatta - Solo per Viscomi (Easter Egg)
+    // Floating Gatta (Easter Egg)
     const floatingGatta = document.getElementById('floatingGatta');
     if (floatingGatta) {
-        if (currentUser === 'Viscomi') {
+        //if (currentUser === 'Viscomi') {
             floatingGatta.style.display = 'block';
-        } else {
-            floatingGatta.style.display = 'none';
+      //  } else {
+           // floatingGatta.style.display = 'none';
         }
     }
 
