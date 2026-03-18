@@ -100,13 +100,13 @@
 }
 
 .login-logo {
-    width: 50%;     
+    width: 50%;     /* Più grande */
     height: 10%;
-    padding: 25px;   
+    padding: 25px;    /* Aumenta padding di conseguenza */
     margin: 0 auto 24px;
     background: #172754;
     border-radius: 3%;
-    border: 3px solid white;        
+    border: 3px solid white;        /* ← Bordo bianco */
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 .login-title {
@@ -1547,9 +1547,8 @@ kbd {
     animation: fadeIn 0.3s ease;
 }
 
-
 .user-analysis-content {
-    max-width: 600px;
+    max-width: 1200px;
     margin: 0 auto;
     background: var(--bg-primary);
     border-radius: 20px;
@@ -1560,7 +1559,7 @@ kbd {
 
 .user-analysis-header {
     background: linear-gradient(135deg, #172754, #3b82f6);
-    padding: 12px 16px;
+    padding: 24px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1577,7 +1576,7 @@ kbd {
 
 .user-analysis-title h2 {
     color: white;
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 700;
     margin: 0;
 }
@@ -1586,8 +1585,8 @@ kbd {
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
-    width: 28px;
-    height: 28px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     cursor: pointer;
     font-size: 24px;
@@ -1603,21 +1602,21 @@ kbd {
 }
 
 .user-analysis-body {
-    padding: 16px;
+    padding: 32px;
 }
 
 .analysis-stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-    gap: 8px;
-    margin-bottom: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
 }
 
 .analysis-stat-card {
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
     border-radius: 12px;
-    padding: 10px;
+    padding: 20px;
     text-align: center;
     transition: all 0.2s;
 }
@@ -1628,60 +1627,60 @@ kbd {
 }
 
 .analysis-stat-icon {
-    font-size: 18px;
-    margin-bottom: 4px;
+    font-size: 32px;
+    margin-bottom: 8px;
 }
 
 .analysis-stat-value {
-    font-size: 18px;
+    font-size: 32px;
     font-weight: 700;
     color: var(--title-blue);
-    margin: 4px 0;
+    margin: 8px 0;
 }
 
 .analysis-stat-label {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 
 .analysis-section {
     background: var(--bg-secondary);
     border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
 }
 
 .analysis-section-title {
-    font-size: 14px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--title-blue);
-    margin-bottom: 10px;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
 }
 
 .analysis-chart-container {
-    height: 150px;
+    height: 300px;
     position: relative;
 }
 
 .month-selector {
     display: flex;
-    gap: 6px;
+    gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 10px;
+    margin-bottom: 20px;
 }
 
 .month-chip {
-    padding: 4px 8px;
+    padding: 8px 16px;
     border-radius: 20px;
     border: 2px solid var(--border-color);
     background: var(--bg-primary);
     cursor: pointer;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     transition: all 0.2s;
 }
@@ -1706,8 +1705,8 @@ kbd {
 .holiday-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 12px;
+    padding: 12px;
     background: var(--bg-primary);
     border-radius: 8px;
     border-left: 4px solid #3b82f6;
@@ -1726,19 +1725,18 @@ kbd {
 }
 
 .holiday-icon {
-    font-size: 14px;
+    font-size: 20px;
 }
 
 .holiday-date {
     font-weight: 600;
     color: var(--text-primary);
-    min-width: 80px;
-    font-size: 12px;
+    min-width: 100px;
 }
 
 .holiday-type {
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: 13px;
 }
 
 .empty-state {
@@ -1771,12 +1769,11 @@ kbd {
 
 @media (max-width: 768px) {
     .user-analysis-body {
-        padding: 10px;
+        padding: 20px;
     }
     
     .analysis-stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 6px;
     }
 }
 
@@ -2721,30 +2718,6 @@ const userColors = {
     "Parini": { bg: 'rgba(59, 130, 246, 0.75)', border: '#3b82f6', point: '#2563eb' }        // Blu
 };
 
-function getUserColor(user){
-    if (userColors[user]) return userColors[user];
-
-    let hash = 0;
-    for (let i = 0; i < user.length; i++) {
-        hash = ((hash << 5) - hash) + user.charCodeAt(i);
-        hash |= 0;
-    }
-
-    const palette = [
-        { bg: 'rgba(96, 165, 250, 0.75)', border: '#60a5fa', point: '#3b82f6' },
-        { bg: 'rgba(251, 146, 60, 0.75)', border: '#fb923c', point: '#f97316' },
-        { bg: 'rgba(74, 222, 128, 0.75)', border: '#4ade80', point: '#22c55e' },
-        { bg: 'rgba(244, 114, 182, 0.75)', border: '#f472b6', point: '#ec4899' },
-        { bg: 'rgba(196, 181, 253, 0.75)', border: '#c4b5fd', point: '#8b5cf6' },
-        { bg: 'rgba(251, 191, 36, 0.75)', border: '#fbbf24', point: '#f59e0b' },
-        { bg: 'rgba(52, 211, 153, 0.75)', border: '#34d399', point: '#10b981' },
-        { bg: 'rgba(129, 140, 248, 0.75)', border: '#818cf8', point: '#6366f1' }
-    ];
-
-    return palette[Math.abs(hash) % palette.length];
-}
-
-
 // ================= DARK MODE =================
 
 function toggleDarkMode(){
@@ -2923,7 +2896,7 @@ function renderFilters(){
         
         const color = document.createElement('div');
         color.className = 'filter-chip-color';
-        color.style.background = getUserColor(u).border;
+        color.style.background = userColors[u].border;
         
         chip.appendChild(color);
         chip.appendChild(document.createTextNode(u));
@@ -2980,10 +2953,10 @@ function renderChart(){
                     }
                     return days;
                 }),
-                backgroundColor: getUserColor(u).bg.replace('0.75', '0.3'),
-                borderColor: getUserColor(u).border,
+                backgroundColor: userColors[u].bg.replace('0.75', '0.3'),
+                borderColor: userColors[u].border,
                 borderWidth: 3,
-                pointBackgroundColor: getUserColor(u).point,
+                pointBackgroundColor: userColors[u].point,
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
                 pointRadius: 5,
@@ -3893,8 +3866,8 @@ function renderUserChart(username, monthDays){
             datasets: [{
                 label: username,
                 data: monthDays,
-                backgroundColor: getUserColor(username).bg,
-                borderColor: getUserColor(username).border,
+                backgroundColor: userColors[username].bg,
+                borderColor: userColors[username].border,
                 borderWidth: 2,
                 borderRadius: 6
             }]
@@ -4363,9 +4336,8 @@ window.initApp = async function() {
 </div>
 <!-- Fine APP CONTAINER -->
 
-<!-- Floating Gatta  -->
+<!-- Floating Gatta (Easter Egg - Solo per Viscomi) -->
 <img id="floatingGatta" src="gatta.gif" alt="Gatta" class="floating-gatta" style="display:none;" title="🐱 Miao!">
-  
 
 <script>
 // ================= AUTENTICAZIONE MICROSOFT (MSAL.js) =================
@@ -4901,10 +4873,19 @@ function applyUserPermissions() {
         }
     }
     
-    // Floating Gatta  (Easter Egg)
+    // Floating GIF per utente (basata su email utente configurata)
     const floatingGatta = document.getElementById('floatingGatta');
     if (floatingGatta) {
-        if (currentUser === 'Viscomi') {
+        const userGifByEmail = {
+            'simone.viscomi@dataexpert.it': 'gatta.gif',
+            'angioletti@dataexpert.it': 'RanaSpecchio.gif'
+        };
+
+        const normalizedEmail = ((usersConfig?.[currentUser]?.email) || currentUserEmail || '').toLowerCase().trim();
+        const assignedGif = userGifByEmail[normalizedEmail];
+
+        if (assignedGif) {
+            floatingGatta.src = assignedGif;
             floatingGatta.style.display = 'block';
         } else {
             floatingGatta.style.display = 'none';
@@ -4915,6 +4896,7 @@ function applyUserPermissions() {
 
 
 
+// Session recovery rimosso - gestito da processRedirect() in initApp()
 // MSAL gestisce già la persistenza degli account
 
 // Espone funzioni per eventuali riferimenti esterni (fallback)
@@ -5018,16 +5000,17 @@ window.addEventListener('resize', syncMobileUI);
     <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
 </div>
 
-<!-- Drawer "Altro" commentato al momento  -->
-  <!--
+<!-- Drawer "Altro" commentato -->
+<!--
 <div class="mob-extras-drawer" id="mobExtrasDrawer">
     <button class="mob-drawer-item" onclick="setViewMobile('half'); closeMobExtras()">📅 Semestre</button>
     <button class="mob-drawer-item" onclick="setViewMobile('year'); closeMobExtras()">🗓️ Anno intero</button>
     <button class="mob-drawer-item" onclick="exportToPDF(); closeMobExtras()">⬇︎ Esporta PDF</button>
     <button class="mob-drawer-item" onclick="exportToExcel(); closeMobExtras()">⬇︎ Esporta Excel</button>
-</div> 
-  -->
-
+</div>
+-->
+<!-- ✅ RIMOSSO: Script inline causava loop infinito -->
+<!-- initApp() viene chiamato SOLO da showApp() dopo login MSAL -->
 
 </body>
 </html>
