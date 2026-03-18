@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <link rel="icon" type="image/png" href="holiday.png">
 
 <title>Piano Ferie Area CCM</title>
@@ -231,7 +231,8 @@
 
     /* ── Body ── */
     body {
-        padding: 8px 8px 100px; /* bottom: spazio generoso per la barra fissa (64px barra + 36px margine) */
+        padding: 8px 8px calc(120px + env(safe-area-inset-bottom, 0px));
+        /* 120px = barra 64px + margine 56px; env() aggiunge la safe area iPhone */
     }
 
     /* ── Login ── */
@@ -384,12 +385,18 @@
         height: 34px;
     }
     .member-name {
-        position: sticky;
-        left: 0;
-        background: var(--bg-secondary);
-        z-index: 2;
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 10 !important;  /* Sopra tutte le celle che scorrono */
+        background: var(--bg-secondary) !important;
         min-width: 76px !important;
         font-size: 11px;
+        box-shadow: 2px 0 4px rgba(0,0,0,0.08); /* Ombra lato destro per indicare il freeze */
+    }
+    /* Header member-name ancora più in alto dello z-index per stare sopra i td */
+    th.member-name {
+        z-index: 15 !important;
+        background: var(--bg-secondary) !important;
     }
     /* Indicatore "scorri" sul planner */
     .planner-scroll-hint {
@@ -486,6 +493,7 @@
         border-top: 1px solid var(--border-color);
         box-shadow: 0 -4px 16px rgba(0,0,0,0.10);
         padding: 8px 12px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); /* iPhone home bar */
         gap: 8px;
         align-items: center;
         justify-content: space-between;
