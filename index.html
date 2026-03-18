@@ -5038,10 +5038,18 @@ function applyUserPermissions() {
         }
     }
     
-    // Floating Gatta  (Easter Egg)
+    // Floating Easter Egg GIF — basata sull'email dell'utente corrente
+    const easterEggMap = {
+        'damiano.angioletti@dataexpert.it': 'RanaSpecchio.gif',
+        'samuela.carnelli@dataexpert.it':   'gatta.gif',
+        'simone.viscomi@dataexpert.it':    'gatta.gif',
+        'luigi.ferrara@dataexpert.it':    'gatta.gif'
+    };
     const floatingGatta = document.getElementById('floatingGatta');
     if (floatingGatta) {
-        if (currentUser === 'Viscomi') {
+        const gif = easterEggMap[currentUserEmail ? currentUserEmail.toLowerCase() : ''];
+        if (gif) {
+            floatingGatta.src = gif;
             floatingGatta.style.display = 'block';
         } else {
             floatingGatta.style.display = 'none';
