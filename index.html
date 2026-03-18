@@ -100,13 +100,13 @@
 }
 
 .login-logo {
-    width: 50%;     /* Più grande */
+    width: 50%;     
     height: 10%;
-    padding: 25px;    /* Aumenta padding di conseguenza */
+    padding: 25px;   
     margin: 0 auto 24px;
     background: #172754;
     border-radius: 3%;
-    border: 3px solid white;        /* ← Bordo bianco */
+    border: 3px solid white;        
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 .login-title {
@@ -4016,7 +4016,7 @@ function showMonthDetails(username, monthIndex){
         timeline.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">🏖️</div>
-                <div>Nessuna feria in ${m.n} ${currentYear}</div>
+                <div>Nessun permesso/ferie in ${m.n} ${currentYear}</div>
             </div>
         `;
     }
@@ -4363,8 +4363,9 @@ window.initApp = async function() {
 </div>
 <!-- Fine APP CONTAINER -->
 
-<!-- Floating Gatta (Easter Egg - Solo per Viscomi) -->
+<!-- Floating Gatta  -->
 <img id="floatingGatta" src="gatta.gif" alt="Gatta" class="floating-gatta" style="display:none;" title="🐱 Miao!">
+  
 
 <script>
 // ================= AUTENTICAZIONE MICROSOFT (MSAL.js) =================
@@ -4900,7 +4901,7 @@ function applyUserPermissions() {
         }
     }
     
-    // Floating Gatta - Solo per Viscomi (Easter Egg)
+    // Floating Gatta  (Easter Egg)
     const floatingGatta = document.getElementById('floatingGatta');
     if (floatingGatta) {
         if (currentUser === 'Viscomi') {
@@ -4914,7 +4915,6 @@ function applyUserPermissions() {
 
 
 
-// Session recovery rimosso - gestito da processRedirect() in initApp()
 // MSAL gestisce già la persistenza degli account
 
 // Espone funzioni per eventuali riferimenti esterni (fallback)
@@ -5018,16 +5018,16 @@ window.addEventListener('resize', syncMobileUI);
     <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
 </div>
 
-<!-- Drawer "Altro" -->
+<!-- Drawer "Altro" commentato al momento  -->
+  <!--
 <div class="mob-extras-drawer" id="mobExtrasDrawer">
     <button class="mob-drawer-item" onclick="setViewMobile('half'); closeMobExtras()">📅 Semestre</button>
     <button class="mob-drawer-item" onclick="setViewMobile('year'); closeMobExtras()">🗓️ Anno intero</button>
     <button class="mob-drawer-item" onclick="exportToPDF(); closeMobExtras()">⬇︎ Esporta PDF</button>
     <button class="mob-drawer-item" onclick="exportToExcel(); closeMobExtras()">⬇︎ Esporta Excel</button>
-</div>
+</div> 
+  -->
 
-<!-- ✅ RIMOSSO: Script inline causava loop infinito -->
-<!-- initApp() viene chiamato SOLO da showApp() dopo login MSAL -->
 
 </body>
 </html>
