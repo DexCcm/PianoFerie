@@ -2156,17 +2156,6 @@ body.user-mode #dashboardTable th{
     }
 }
 
-
-.holiday-user{
-    margin-left:auto;
-    font-size:11px;
-    font-weight:700;
-    color:var(--title-blue);
-    background:rgba(23,39,84,0.08);
-    padding:2px 8px;
-    border-radius:999px;
-}
-
 </style>
 </head>
 
@@ -2290,23 +2279,23 @@ body.user-mode #dashboardTable th{
 
     <!-- Statistiche Cards -->
     <div class="stats-row" id="statsRow">
-        <div class="stat-card" onclick="openHomeStatsAnalysis()" style="cursor:pointer;" title="Clicca per analisi dettagliata">
+        <div class="stat-card" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <div class="stat-label">Totale Giorni</div>
             <div class="stat-value" id="totalDays">0</div>
             <div class="stat-subvalue" id="totalHours">0 ore</div>
         </div>
-        <div class="stat-card" onclick="openHomeStatsAnalysis()" style="cursor:pointer;" title="Clicca per analisi dettagliata">
+        <div class="stat-card" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <div class="stat-label" id="avgLabel">Media per Persona</div>
             <div class="stat-value" id="avgDays">0</div>
             <div class="stat-subvalue" id="avgHours">0 ore</div>
         </div>
-        <div class="stat-card" onclick="openHomeStatsAnalysis()" style="cursor:pointer;" title="Clicca per analisi dettagliata">
+        <div class="stat-card" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <div class="stat-label">Mese con Più Ferie</div>
             <div class="stat-value" id="peakMonth">-</div>
             <div class="stat-subvalue" id="peakDays">0 giorni</div>
         </div>
-        <div class="stat-card" id="topUserCard" onclick="openHomeStatsAnalysis()" style="cursor:pointer;" title="Clicca per analisi dettagliata">
-            <div class="stat-label">Utente con più Ferie inserite</div>
+        <div class="stat-card" id="topUserCard" onclick="openUserAnalysis(currentUser)" style="cursor:pointer;" title="Clicca per analisi dettagliata">
+            <div class="stat-label">Utente con più ferie inserite</div>
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
         </div>
@@ -3746,42 +3735,22 @@ async function applyRangeHolidays(){
 
 let analysisChart = null;
 let currentAnalysisUser = null;
-const ALL_USERS_ANALYSIS = '__ALL_USERS__';
-
-function getAnalysisTargets(username){
-    if(username === ALL_USERS_ANALYSIS){
-        return (currentUserRole === 'user') ? [currentUser] : [...users];
-    }
-    return [username];
-}
-
-function openHomeStatsAnalysis(){
-    const target = (currentUserRole === 'user') ? currentUser : ALL_USERS_ANALYSIS;
-    openUserAnalysis(target);
-}
 
 function openUserAnalysis(username){
     // Permesso USER: consentita analisi solo del proprio profilo
-    if(currentUserRole === 'user' && username !== currentUser && username !== ALL_USERS_ANALYSIS){
-        return;
-    }
-
-    const targets = getAnalysisTargets(username);
-    if(!targets.length){
+    if(currentUserRole === 'user' && username !== currentUser){
         return;
     }
 
     currentAnalysisUser = username;
-
+    
     // Apri modal
     document.getElementById('userAnalysisModal').style.display = 'flex';
-
-    const isAggregate = username === ALL_USERS_ANALYSIS;
-    document.getElementById('analysisUserName').textContent = isAggregate
-        ? `Analisi Ferie - Tutti gli utenti`
-        : `Analisi Ferie - ${username}`;
-
-    // Aggiungi corona se è top user solo in vista singolo utente
+    
+    // Imposta nome utente
+    document.getElementById('analysisUserName').textContent = `Analisi Ferie - ${username}`;
+    
+    // Aggiungi corona se è top user
     const userDays = {};
     users.forEach(u => {
         userDays[u] = 0;
@@ -3792,11 +3761,10 @@ function openUserAnalysis(username){
             }
         });
     });
-    const maxUser = users.length ? users.reduce((a, b) => userDays[a] > userDays[b] ? a : b) : null;
-    document.getElementById('analysisUserCrown').innerHTML = (!isAggregate && username === maxUser)
-        ? '<span class="crown-icon">👑</span>'
-        : '';
-
+    const maxUser = users.reduce((a, b) => userDays[a] > userDays[b] ? a : b);
+    document.getElementById('analysisUserCrown').innerHTML = username === maxUser ? '<span class="crown-icon">👑</span>' : '';
+    
+    // Calcola e mostra statistiche
     calculateUserStats(username);
 }
 
@@ -3809,72 +3777,97 @@ function closeUserAnalysis(){
 }
 
 function calculateUserStats(username){
-    const targets = getAnalysisTargets(username);
     let totalDays = 0;
     let totalHours = 0;
     let monthDays = Array(12).fill(0);
-    let periods = 0;
-
-    targets.forEach(targetUser => {
-        let inPeriod = false;
-
-        months.forEach((m, mi) => {
-            for(let d = 1; d <= m.d; d++){
-                const key = `${targetUser}-${currentYear}-${mi + 1}-${d}`;
-                const value = dataCache[key] || "";
-                const days = parseDays(value);
-
-                if(days > 0){
-                    totalDays += days;
-                    totalHours += days * 8;
-                    monthDays[mi] += days;
-
-                    if(!inPeriod){
-                        periods++;
-                        inPeriod = true;
-                    }
-                } else {
-                    inPeriod = false;
-                }
+    let holidayPeriods = [];
+    
+    // Calcola dati per ogni mese
+    months.forEach((m, mi) => {
+        for(let d = 1; d <= m.d; d++){
+            // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+            const key = `${username}-${currentYear}-${mi + 1}-${d}`;
+            const value = dataCache[key] || "";
+            const days = parseDays(value);
+            
+            if(days > 0){
+                totalDays += days;
+                totalHours += days * 8;
+                monthDays[mi] += days;
+                
+                holidayPeriods.push({
+                    month: mi,
+                    day: d,
+                    value: value,
+                    days: days
+                });
             }
-        });
+        }
     });
-
+    
+    // Aggiorna stats cards
     document.getElementById('analysisTotalDays').textContent = totalDays.toFixed(1);
     document.getElementById('analysisTotalHours').textContent = totalHours.toFixed(0) + 'h';
-
+    
+    // Mese con più ferie
     const maxMonthIdx = monthDays.indexOf(Math.max(...monthDays));
     const maxMonthDays = monthDays[maxMonthIdx];
-    document.getElementById('analysisTopMonth').textContent = maxMonthDays > 0 ? months[maxMonthIdx].n : '-';
+    if(maxMonthDays > 0){
+        document.getElementById('analysisTopMonth').textContent = months[maxMonthIdx].n;
+    } else {
+        document.getElementById('analysisTopMonth').textContent = '-';
+    }
+    
+    // Conta periodi (giorni consecutivi = 1 periodo)
+    let periods = 0;
+    let inPeriod = false;
+    months.forEach((m, mi) => {
+        for(let d = 1; d <= m.d; d++){
+            const key = `${username}-${currentYear}-${mi + 1}-${d}`;
+            const value = dataCache[key] || "";
+            if(parseDays(value) > 0){
+                if(!inPeriod){
+                    periods++;
+                    inPeriod = true;
+                }
+            } else {
+                inPeriod = false;
+            }
+        }
+    });
     document.getElementById('analysisPeriods').textContent = periods;
-
+    
+    // Renderizza grafico
     renderUserChart(username, monthDays);
+    
+    // Popola selector mesi
     populateMonthSelector(username, monthDays);
-
+    
+    // Mostra primo mese con ferie
     const firstMonthWithHolidays = monthDays.findIndex(days => days > 0);
-    showMonthDetails(username, firstMonthWithHolidays !== -1 ? firstMonthWithHolidays : 0);
+    if(firstMonthWithHolidays !== -1){
+        showMonthDetails(username, firstMonthWithHolidays);
+    } else {
+        showMonthDetails(username, 0); // Mostra gennaio se nessuna ferie
+    }
 }
 
 function renderUserChart(username, monthDays){
     const ctx = document.getElementById('analysisChart');
-    const isAggregate = username === ALL_USERS_ANALYSIS;
-    const chartColors = isAggregate
-        ? { bg: 'rgba(23,39,84,0.25)', border: '#172754' }
-        : (userColors[username] || { bg: 'rgba(59,130,246,0.25)', border: '#3b82f6' });
-
+    
     if(analysisChart){
         analysisChart.destroy();
     }
-
+    
     analysisChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: months.map(m => m.s),
             datasets: [{
-                label: isAggregate ? 'Tutti gli utenti' : username,
+                label: username,
                 data: monthDays,
-                backgroundColor: chartColors.bg,
-                borderColor: chartColors.border,
+                backgroundColor: userColors[username].bg,
+                borderColor: userColors[username].border,
                 borderWidth: 2,
                 borderRadius: 6
             }]
@@ -3919,20 +3912,22 @@ function renderUserChart(username, monthDays){
 function populateMonthSelector(username, monthDays){
     const container = document.getElementById('monthSelector');
     container.innerHTML = '';
-
+    
     months.forEach((m, mi) => {
         const chip = document.createElement('div');
         chip.className = 'month-chip';
         chip.textContent = `${m.n} (${monthDays[mi].toFixed(1)}gg)`;
         chip.onclick = () => {
+            // Rimuovi active da tutti
             container.querySelectorAll('.month-chip').forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
             showMonthDetails(username, mi);
         };
-
+        
         container.appendChild(chip);
     });
-
+    
+    // Attiva il primo chip
     const firstChip = container.querySelector('.month-chip');
     if(firstChip) firstChip.classList.add('active');
 }
@@ -3940,59 +3935,56 @@ function populateMonthSelector(username, monthDays){
 function showMonthDetails(username, monthIndex){
     const timeline = document.getElementById('holidaysTimeline');
     timeline.innerHTML = '';
-
+    
     const m = months[monthIndex];
     let hasHolidays = false;
-    const targets = getAnalysisTargets(username);
-    const isAggregate = username === ALL_USERS_ANALYSIS;
-
-    targets.forEach(targetUser => {
-        for(let d = 1; d <= m.d; d++){
-            const key = `${targetUser}-${currentYear}-${monthIndex + 1}-${d}`;
-            const value = dataCache[key] || "";
-            const days = parseDays(value);
-
-            if(days > 0){
-                hasHolidays = true;
-
-                const item = document.createElement('div');
-                item.className = 'holiday-item';
-
-                let type = '';
-                let icon = '';
-                if(value === '8'){
-                    item.classList.add('full-day');
-                    type = 'Giornata intera';
-                    icon = '🟥';
-                } else if(value.endsWith && value.endsWith('M')){
-                    item.classList.add('morning');
-                    type = `Mattina (${value})`;
-                    icon = '🟦';
-                } else if(value.endsWith && value.endsWith('P')){
-                    item.classList.add('afternoon');
-                    type = `Pomeriggio (${value})`;
-                    icon = '🟪';
-                } else {
-                    type = value;
-                    icon = '📅';
-                }
-
-                const date = new Date(currentYear, monthIndex, d);
-                const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][date.getDay()];
-                const userPrefix = isAggregate ? `<span class="holiday-user">${targetUser}</span>` : '';
-
-                item.innerHTML = `
-                    <span class="holiday-icon">${icon}</span>
-                    <span class="holiday-date">${dayName} ${d} ${m.n}</span>
-                    <span class="holiday-type">${type}</span>
-                    ${userPrefix}
-                `;
-
-                timeline.appendChild(item);
+    
+    for(let d = 1; d <= m.d; d++){
+        // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
+        const key = `${username}-${currentYear}-${monthIndex + 1}-${d}`;
+        const value = dataCache[key] || "";
+        const days = parseDays(value);
+        
+        if(days > 0){
+            hasHolidays = true;
+            
+            const item = document.createElement('div');
+            item.className = 'holiday-item';
+            
+            // Determina tipo
+            let type = '';
+            let icon = '';
+            if(value === '8'){
+                item.classList.add('full-day');
+                type = 'Giornata intera';
+                icon = '🟥';
+            } else if(value.endsWith && value.endsWith('M')){
+                item.classList.add('morning');
+                type = `Mattina (${value})`;
+                icon = '🟦';
+            } else if(value.endsWith && value.endsWith('P')){
+                item.classList.add('afternoon');
+                type = `Pomeriggio (${value})`;
+                icon = '🟪';
+            } else {
+                type = value;
+                icon = '📅';
             }
+            
+            // Formatta data
+            const date = new Date(currentYear, monthIndex, d);
+            const dayName = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][date.getDay()];
+            
+            item.innerHTML = `
+                <span class="holiday-icon">${icon}</span>
+                <span class="holiday-date">${dayName} ${d} ${m.n}</span>
+                <span class="holiday-type">${type}</span>
+            `;
+            
+            timeline.appendChild(item);
         }
-    });
-
+    }
+    
     if(!hasHolidays){
         timeline.innerHTML = `
             <div class="empty-state">
@@ -4852,7 +4844,7 @@ function applyUserPermissions() {
         // 0. Rimuovi classe body USER
         document.body.classList.remove('user-mode');
 
-        // 0b. Ripristina card "Utente con Più Ferie"
+        // 0b. Ripristina card "Utente con più Ferie Inserite"
         const topUserCard = document.getElementById('topUserCard');
         if (topUserCard) topUserCard.style.display = '';
         
@@ -5008,14 +5000,15 @@ window.addEventListener('resize', syncMobileUI);
     <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
 </div>
 
-<!-- Drawer "Altro" 
+<!-- Drawer "Altro" commentato -->
+<!--
 <div class="mob-extras-drawer" id="mobExtrasDrawer">
     <button class="mob-drawer-item" onclick="setViewMobile('half'); closeMobExtras()">📅 Semestre</button>
     <button class="mob-drawer-item" onclick="setViewMobile('year'); closeMobExtras()">🗓️ Anno intero</button>
     <button class="mob-drawer-item" onclick="exportToPDF(); closeMobExtras()">⬇︎ Esporta PDF</button>
     <button class="mob-drawer-item" onclick="exportToExcel(); closeMobExtras()">⬇︎ Esporta Excel</button>
-</div>-->
-
+</div>
+-->
 <!-- ✅ RIMOSSO: Script inline causava loop infinito -->
 <!-- initApp() viene chiamato SOLO da showApp() dopo login MSAL -->
 
