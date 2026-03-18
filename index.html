@@ -228,200 +228,354 @@
 
 /* ================= RESPONSIVE - MOBILE FIRST ================= */
 @media (max-width: 768px) {
-    /* Login */
+
+    /* ── Body ── */
+    body {
+        padding: 8px 8px 80px; /* bottom: spazio per la barra fissa */
+    }
+
+    /* ── Login ── */
     .login-box {
-        padding: 32px 24px;
+        padding: 28px 20px;
     }
-    
     .login-logo {
-        width: 90px;
-        height: 50px;
+        width: 80px;
+        height: auto;
     }
-    
     .login-title {
-        font-size: 24px;
+        font-size: 22px;
     }
-    
-    /* User info bar */
+
+    /* ── User info bar ── */
     .user-info-bar {
         padding: 8px 12px;
         font-size: 12px;
     }
-    
     .user-info-name {
-        display: none; /* Nascondi nome su mobile, solo ruolo */
+        display: none;
     }
-    
-    /* Logo header */
+
+    /* ── Logo header: più compatto ── */
     .logo-box {
-        padding: 12px 0;
+        padding: 10px 0;
+        margin-bottom: 4px;
+        border-radius: 8px;
     }
-    
     .logo-img {
-        height: 60px;
+        height: 44px;
     }
-    
-    /* Titolo */
+
+    /* ── Titolo h1: ridotto ── */
     h1 {
-        font-size: 20px;
-        margin: 12px 0;
+        font-size: 17px;
+        margin: 8px 0 6px;
     }
-    
-    /* Navigazione anno */
-    h1 + div {
-        flex-direction: column;
+
+    /* ── Navigazione ANNO: icone sole, niente testo ── */
+    .year-nav-bar {
         gap: 8px;
+        margin-bottom: 8px;
     }
-    
-    .nav-btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    /* Tabs viste */
-    .view-mode-bar {
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 12px;
-    }
-    
-    .view-btn {
-        flex: 1 1 calc(50% - 8px);
-        min-width: 100px;
+    .year-nav-bar .nav-btn {
+        padding: 8px 14px;
         font-size: 13px;
-        padding: 10px 12px;
+        width: auto;
     }
-    
-    /* Bottone inserisci ferie */
-    .insert-holidays-btn {
-        width: 100%;
-        height: auto;
-        padding: 16px;
-        margin: 16px 0;
+    .year-nav-label {
+        display: none; /* nasconde "Anno Prec." / "Anno Succ." su mobile */
     }
-    
-    /* Stats cards */
-    .stats-row {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+
+    /* ── Navigazione MESE: compatta ── */
+    .calendar-header {
+        gap: 8px;
+        margin-bottom: 10px;
     }
-    
-    .stat-box {
-        padding: 16px 12px;
+    .calendar-header .nav-btn {
+        padding: 8px 14px;
+        width: auto;
     }
-    
-    .stat-value {
-        font-size: 24px;
+    .month-label {
+        font-size: 17px;
+        min-width: 130px;
     }
-    
-    .stat-label {
-        font-size: 11px;
-    }
-    
-    /* Dashboard row */
-    .dashboard-row {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    /* Tabella dashboard */
-    .dashboard-table-box,
-    .chart-box {
-        padding: 16px;
-    }
-    
-    #dashboardTable {
-        font-size: 12px;
-    }
-    
-    #dashboardTable th,
-    #dashboardTable td {
-        padding: 8px 4px;
-    }
-    
-    /* Grafico */
-    .chart-box canvas {
-        height: 250px !important;
-    }
-    
-    /* Calendari */
-    .planner-box {
+
+    /* ── View mode bar: solo Mese e Trimestre visibili, resto in ⋯ ── */
+    .view-mode-bar {
+        gap: 6px;
+        padding: 0 0 10px;
+        justify-content: center;
+        flex-wrap: nowrap;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-    
+    .view-btn {
+        flex: 0 0 auto;
+        padding: 8px 14px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+    /* Nascondi Semestre, Anno, PDF, Excel direttamente nella view-bar su mobile */
+    .view-btn-hide-mobile {
+        display: none !important;
+    }
+
+    /* ── Hint SHIFT+Click: inutile su touch ── */
+    .shift-hint {
+        display: none;
+    }
+
+    /* ── Bottone Inserisci Ferie: nascosto dalla posizione desktop,
+          appare nella bottom bar mobile (vedi sotto) ── */
+    .insert-holidays-btn {
+        display: none;
+    }
+
+    /* ── Stats cards: scroll orizzontale con snap ── */
+    .stats-row {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        gap: 10px;
+        padding-bottom: 8px;
+        width: 100%;
+    }
+    .stats-row::-webkit-scrollbar { display: none; }
+    .stat-card {
+        flex: 0 0 68vw;
+        scroll-snap-align: start;
+        min-width: 200px;
+    }
+    .stat-value {
+        font-size: 26px;
+    }
+    .stat-label {
+        font-size: 11px;
+    }
+
+    /* ── Dashboard: stacked, chart collassato di default (via JS) ── */
+    .dashboard-row {
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+    .dashboard-box,
+    .chart-box {
+        width: 100%;
+        padding: 14px;
+        box-sizing: border-box;
+    }
+    .chart-box canvas {
+        height: 220px !important;
+    }
+
+    /* ── Planner: scroll orizzontale con indicatore ── */
+    .planner-box {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
+    }
     .planner {
-        min-width: 600px;
+        min-width: 620px;
         font-size: 10px;
     }
-    
     .planner th,
     .planner td {
-        padding: 4px 2px;
-        min-width: 20px;
+        padding: 5px 2px;
+        min-width: 22px;
+        height: 34px;
     }
-    
     .member-name {
         position: sticky;
         left: 0;
         background: var(--bg-secondary);
         z-index: 2;
-        min-width: 80px !important;
+        min-width: 76px !important;
+        font-size: 11px;
     }
-    
-    /* Modal */
+    /* Indicatore "scorri" sul planner */
+    .planner-scroll-hint {
+        display: block;
+        text-align: center;
+        font-size: 11px;
+        color: var(--text-secondary);
+        padding: 4px 0 2px;
+        opacity: 0.7;
+    }
+
+    /* ── Modal ferie: touch-friendly ── */
     .modal-panel {
-        width: 95vw;
-        max-width: 95vw;
-        padding: 16px;
+        width: 96vw;
+        max-width: 96vw;
+        padding: 16px 14px;
+        border-radius: 16px;
     }
-    
     .modal-title {
-        font-size: 16px;
+        font-size: 17px;
     }
-    
+    /* Tap target minimo 44px (Apple HIG) */
     .hour-btn {
-        padding: 8px 12px;
-        font-size: 12px;
+        padding: 0;
+        min-height: 44px;
+        min-width: 60px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
-    /* Modal analisi */
+    .btn-full-day {
+        min-height: 48px;
+        font-size: 15px;
+    }
+    .cancel-btn {
+        min-height: 40px;
+        padding: 8px 18px;
+    }
+
+    /* ── Modal analisi ── */
     .user-analysis-modal {
-        padding: 12px;
+        padding: 8px;
     }
-    
     .user-analysis-header {
-        padding: 16px;
+        padding: 14px 16px;
     }
-    
     .user-analysis-title h2 {
-        font-size: 20px;
+        font-size: 18px;
     }
-    
     .user-analysis-body {
-        padding: 16px;
+        padding: 14px;
     }
-    
     .analysis-stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
+        gap: 10px;
     }
-    
     .analysis-stat-value {
-        font-size: 24px;
+        font-size: 22px;
     }
-    
     .analysis-chart-container {
-        height: 200px;
+        height: 180px;
     }
-    
     .month-selector {
         gap: 6px;
     }
-    
     .month-chip {
-        padding: 6px 12px;
+        padding: 6px 10px;
         font-size: 11px;
+    }
+
+    /* ── Version badge: ridotto ── */
+    .version-badge {
+        font-size: 9px;
+        padding: 3px 7px;
+        bottom: 68px; /* sopra la bottom bar */
+        right: 8px;
+    }
+}
+
+/* ── BOTTOM ACTION BAR - solo mobile ── */
+.mobile-bottom-bar {
+    display: none;
+}
+@media (max-width: 768px) {
+    .mobile-bottom-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 990;
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.10);
+        padding: 8px 12px;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .mob-nav-btn {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-primary);
+        font-size: 20px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background 0.15s;
+    }
+    .mob-nav-btn:active {
+        background: var(--hover-bg);
+    }
+    .mob-insert-btn {
+        flex: 1;
+        height: 44px;
+        background: #172754;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .mob-insert-btn:active {
+        background: #3b82f6;
+    }
+    .mob-extras-btn {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        color: var(--text-secondary);
+        font-size: 18px;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    /* Drawer "Altro" (PDF, Excel, Semestre, Anno) */
+    .mob-extras-drawer {
+        display: none;
+        position: fixed;
+        bottom: 64px;
+        right: 12px;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+        z-index: 991;
+        overflow: hidden;
+        min-width: 180px;
+    }
+    .mob-extras-drawer.open {
+        display: block;
+    }
+    .mob-drawer-item {
+        display: block;
+        width: 100%;
+        padding: 14px 18px;
+        text-align: left;
+        background: none;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+    .mob-drawer-item:last-child {
+        border-bottom: none;
+    }
+    .mob-drawer-item:active {
+        background: var(--hover-bg);
     }
 }
 
@@ -2050,15 +2204,15 @@ body.user-mode #dashboardTable th{
 
 <h1>Planner Annuale <span id="yearLabel">2026</span></h1>
 
-<div style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
+<div class="year-nav-bar" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
     <button class="nav-btn" onclick="changeYear(-1)">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
-        Anno Prec.
+        <span class="year-nav-label">Anno Prec.</span>
     </button>
     <button class="nav-btn" onclick="changeYear(1)">
-        Anno Succ.
+        <span class="year-nav-label">Anno Succ.</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
@@ -2082,10 +2236,10 @@ body.user-mode #dashboardTable th{
 <div class="view-mode-bar">
     <button class="view-btn active" onclick="setView('month',this)">Mese</button>
     <button class="view-btn" onclick="setView('quarter',this)">Trimestre</button>
-    <button class="view-btn" onclick="setView('half',this)">Semestre</button>
-    <button class="view-btn" onclick="setView('year',this)">Anno</button>
-    <button class="view-btn" onclick="exportToPDF()">⬇︎ PDF</button>
-    <button class="view-btn" onclick="exportToExcel()">⬇︎ Excel</button>
+    <button class="view-btn view-btn-hide-mobile" onclick="setView('half',this)">Semestre</button>
+    <button class="view-btn view-btn-hide-mobile" onclick="setView('year',this)">Anno</button>
+    <button class="view-btn view-btn-hide-mobile" onclick="exportToPDF()">⬇︎ PDF</button>
+    <button class="view-btn view-btn-hide-mobile" onclick="exportToExcel()">⬇︎ Excel</button>
 </div>
 
 <!-- Bottone Inserisci Ferie Animato -->
@@ -2100,7 +2254,7 @@ body.user-mode #dashboardTable th{
     <span class="btn-text">INSERISCI FERIE</span>
 </button>
 
-<div style="text-align:center;color:#6b7280;font-size:13px;margin:-10px 0 20px 0;">
+<div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:-10px 0 20px 0;">
     💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
 </div>
 
@@ -3022,7 +3176,9 @@ function renderPlanner(){
             html+=`</tr>`;
         });
 
-        html+=`</tbody></table></div>`;
+        html+=`</tbody></table>
+        <div class="planner-scroll-hint">← scorri per vedere tutti i giorni →</div>
+        </div>`;
         cont.insertAdjacentHTML("beforeend",html);
     });
 }
@@ -4113,6 +4269,10 @@ window.initApp = async function() {
     if (typeof currentUserRole !== 'undefined' && currentUserRole) {
         applyUserPermissions();
     }
+
+    // *** SYNC UI MOBILE ***
+    // Aggiorna bottom bar, collassa grafico su mobile, ecc.
+    syncMobileUI();
     
     document.getElementById('loadingOverlay').style.display = 'none';
     
@@ -4608,11 +4768,10 @@ function applyUserPermissions() {
             chartFilters.style.display = 'none';
         }
 
-        // 2. Nascondi bottone "Inserisci Ferie"
-        const insertBtn = document.getElementById('insertHolidaysBtn');
-        if (insertBtn) {
-            insertBtn.style.display = 'none';
-        }
+        // 2. Bottone "Inserisci Ferie" — visibile sia per USER che ADMIN
+        // Su mobile è la bottom bar a mostrarlo, il desktop btn rimane nascosto dal CSS
+        // Nessuna azione necessaria qui: syncMobileUI() gestisce la visibilità
+
         
         // 3. Nascondi toggle grafico (solo ADMIN può espandere/comprimere)
         const chartToggleHeader = document.getElementById('chartToggleHeader');
@@ -4652,12 +4811,8 @@ function applyUserPermissions() {
             chartFilters.style.display = '';
         }
         
-        // Ripristina visibilità bottone inserisci ferie
-        const insertBtn = document.getElementById('insertHolidaysBtn');
-        if (insertBtn) {
-            insertBtn.style.display = '';
-        }
-        
+        // Bottone "Inserisci Ferie" — gestito da syncMobileUI() per desktop/mobile
+
         // Ripristina toggle grafico per ADMIN
         const chartToggleHeader = document.getElementById('chartToggleHeader');
         if (chartToggleHeader) {
@@ -4695,7 +4850,111 @@ function applyUserPermissions() {
 // Espone funzioni per eventuali riferimenti esterni (fallback)
 window.signIn = signIn;
 window.signOut = typeof signOut === 'function' ? signOut : undefined;
+
+// ================= MOBILE HELPERS =================
+
+/**
+ * Mostra/nasconde la bottom bar e il pulsante desktop
+ * in base alla larghezza schermo, aggiornato anche su resize.
+ */
+function syncMobileUI() {
+    const isMobile = window.innerWidth <= 768;
+
+    // Bottom bar: visibile solo su mobile E solo se utente loggato
+    const bar = document.getElementById('mobileBottomBar');
+    if (bar) {
+        bar.style.display = (isMobile && currentUser) ? 'flex' : 'none';
+    }
+
+    // Bottone desktop "Inserisci Ferie":
+    // - su mobile: sempre nascosto (usa la bottom bar)
+    // - su desktop: visibile per tutti i ruoli (USER e ADMIN)
+    const desktopBtn = document.getElementById('insertHolidaysBtn');
+    if (desktopBtn && currentUser) {
+        desktopBtn.style.display = isMobile ? 'none' : '';
+    }
+
+    // Su mobile, collassa il grafico di default alla prima visualizzazione
+    if (isMobile) {
+        const chartContent = document.getElementById('chartContent');
+        const icon = document.querySelector('.chart-toggle-icon');
+        if (chartContent && !chartContent.classList.contains('collapsed')) {
+            chartContent.classList.add('collapsed');
+            if (icon) icon.classList.remove('expanded');
+        }
+    }
+}
+
+/** Toggle drawer "Altro" nella bottom bar */
+function toggleMobExtras() {
+    const drawer = document.getElementById('mobExtrasDrawer');
+    if (drawer) drawer.classList.toggle('open');
+}
+
+function closeMobExtras() {
+    const drawer = document.getElementById('mobExtrasDrawer');
+    if (drawer) drawer.classList.remove('open');
+}
+
+/** Chiudi drawer se si clicca fuori */
+document.addEventListener('click', function(e) {
+    const drawer = document.getElementById('mobExtrasDrawer');
+    const extrasBtn = document.querySelector('.mob-extras-btn');
+    if (drawer && drawer.classList.contains('open')) {
+        if (!drawer.contains(e.target) && e.target !== extrasBtn) {
+            closeMobExtras();
+        }
+    }
+});
+
+/**
+ * Versione mobile di setView: aggiorna anche i bottoni della view-bar desktop
+ * (che rimangono nel DOM anche su mobile)
+ */
+function setViewMobile(v) {
+    viewMode = v;
+    // Aggiorna visivamente i pulsanti desktop
+    document.querySelectorAll('.view-btn').forEach(b => {
+        b.classList.remove('active');
+        if (b.textContent.trim().toLowerCase().startsWith(
+            v === 'month' ? 'mes' : v === 'quarter' ? 'trim' : v === 'half' ? 'semes' : 'ann'
+        )) {
+            b.classList.add('active');
+        }
+    });
+    render();
+}
+
+// Aggiorna UI mobile ad ogni resize
+window.addEventListener('resize', syncMobileUI);
 </script>
+
+<!-- ============ MOBILE BOTTOM ACTION BAR ============ -->
+<div class="mobile-bottom-bar" id="mobileBottomBar">
+    <!-- Prev month -->
+    <button class="mob-nav-btn" onclick="prevMonth()" title="Mese precedente">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+
+    <!-- Inserisci ferie (replicato dalla posizione desktop) -->
+    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ INSERISCI FERIE</button>
+
+    <!-- Next month -->
+    <button class="mob-nav-btn" onclick="nextMonth()" title="Mese successivo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+
+    <!-- Altro (drawer) -->
+    <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
+</div>
+
+<!-- Drawer "Altro" -->
+<div class="mob-extras-drawer" id="mobExtrasDrawer">
+    <button class="mob-drawer-item" onclick="setViewMobile('half'); closeMobExtras()">📅 Semestre</button>
+    <button class="mob-drawer-item" onclick="setViewMobile('year'); closeMobExtras()">🗓️ Anno intero</button>
+    <button class="mob-drawer-item" onclick="exportToPDF(); closeMobExtras()">⬇︎ Esporta PDF</button>
+    <button class="mob-drawer-item" onclick="exportToExcel(); closeMobExtras()">⬇︎ Esporta Excel</button>
+</div>
 
 <!-- ✅ RIMOSSO: Script inline causava loop infinito -->
 <!-- initApp() viene chiamato SOLO da showApp() dopo login MSAL -->
