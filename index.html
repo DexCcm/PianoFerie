@@ -492,11 +492,11 @@
 
 /* ── BOTTOM ACTION BAR - solo mobile ── */
 .mobile-bottom-bar {
-    display: none;
+    display: none; /* Sempre nascosta di default; viene mostrata da syncMobileUI() solo dopo il login */
 }
 @media (max-width: 768px) {
     .mobile-bottom-bar {
-        display: flex;
+        /* display gestito via JS - non impostare flex qui */
         position: fixed;
         bottom: 0;
         left: 0;
@@ -662,11 +662,29 @@
 /* Su mobile lo sticky è disabilitato: la bottom bar gestisce già nav mese */
 @media (max-width: 768px) {
     .sticky-nav {
-        position: static;
-        margin-left: 0;
-        margin-right: 0;
-        padding: 4px 0 0;
-        box-shadow: none !important;
+        /* Sticky abilitato anche su mobile */
+        margin-left: -8px;  /* compensa il padding body mobile (8px) */
+        margin-right: -8px;
+        padding: 6px 8px 4px;
+        /* Ombra sempre visibile su mobile per separare il nav dal contenuto */
+        box-shadow: none;
+    }
+    .sticky-nav.scrolled {
+        box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+    }
+    /* Compatta ulteriormente i margini interni su mobile */
+    .sticky-nav h1 {
+        font-size: 17px;
+        margin: 0 0 4px;
+    }
+    .sticky-nav .year-nav-bar {
+        margin-bottom: 4px !important;
+    }
+    .sticky-nav .calendar-header {
+        margin-bottom: 6px;
+    }
+    .sticky-nav .view-mode-bar {
+        margin: 0 0 2px;
     }
 }
 
