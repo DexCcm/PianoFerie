@@ -2479,7 +2479,7 @@ body.user-mode #dashboardTable th{
 
     <div class="modal-section">
         <div class="modal-section-title">Data Inizio</div>
-        <input type="date" id="rangeStart" style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
+        <input type="date" id="rangeStart" onchange="syncRangeEnd()" style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
     </div>
 
     <div class="modal-section">
@@ -3773,12 +3773,36 @@ function openRangeModal(){
     // Disabilita select (non modificabile)
     select.disabled = true;
     
-    // Imposta date di default
+    // Imposta date di default: inizio = oggi, fine = uguale all'inizio
     const today = new Date();
-    document.getElementById("rangeStart").value = today.toISOString().split('T')[0];
-    document.getElementById("rangeEnd").value = today.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById("rangeStart").value = todayStr;
+    document.getElementById("rangeEnd").value = todayStr;
     
     document.getElementById("rangeModal").style.display = "flex";
+}
+
+/**
+ * Sincronizza la data di fine con quella di inizio se la fine è
+ * precedente o uguale all'inizio (o se l'utente non l'ha ancora toccata).
+ * Comportamento: cambiando la data di inizio, la fine si aggiorna
+ * automaticamente alla stessa data — l'utente può poi spostarla avanti.
+ */
+function syncRangeEnd(){
+    const startInput = document.getElementById("rangeStart");
+    const endInput   = document.getElementById("rangeEnd");
+    if(!startInput || !endInput) return;
+
+    const startVal = startInput.value;
+    const endVal   = endInput.value;
+
+    // Aggiorna fine se è vuota oppure è precedente alla nuova data di inizio
+    if(!endVal || endVal < startVal){
+        endInput.value = startVal;
+    }
+
+    // Aggiorna anche il min dell'input fine per impedire date precedenti all'inizio
+    endInput.min = startVal;
 }
 
 function closeRangeModal(){
