@@ -625,6 +625,51 @@
     }
 }
 
+/* ================= STICKY NAV HEADER ================= */
+.sticky-nav {
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    /* Estende oltre il padding del body per coprire tutta la larghezza del viewport */
+    margin-left: -20px;
+    margin-right: -20px;
+    padding: 10px 20px 6px;
+    background: var(--bg-primary);
+    /* Ombra visibile solo dopo scroll */
+    box-shadow: 0 0 0 transparent;
+    transition: box-shadow 0.25s ease;
+}
+.sticky-nav.scrolled {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+[data-theme="dark"] .sticky-nav.scrolled {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.40);
+}
+/* Compatta h1 dentro lo sticky */
+.sticky-nav h1 {
+    margin: 0 0 8px;
+    font-size: 22px;
+}
+.sticky-nav .year-nav-bar {
+    margin-bottom: 8px !important;
+}
+.sticky-nav .calendar-header {
+    margin-bottom: 8px;
+}
+.sticky-nav .view-mode-bar {
+    margin: 0 0 4px;
+}
+/* Su mobile lo sticky è disabilitato: la bottom bar gestisce già nav mese */
+@media (max-width: 768px) {
+    .sticky-nav {
+        position: static;
+        margin-left: 0;
+        margin-right: 0;
+        padding: 4px 0 0;
+        box-shadow: none !important;
+    }
+}
+
 /* ================= BASE ================= */
 body{
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",
@@ -2236,6 +2281,8 @@ body.user-mode #dashboardTable th{
     </button>
 </div>
 
+<div class="sticky-nav" id="stickyNav">
+
 <h1>Planner Annuale <span id="yearLabel">2026</span></h1>
 
 <div class="year-nav-bar" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
@@ -2275,6 +2322,8 @@ body.user-mode #dashboardTable th{
     <button class="view-btn" onclick="exportToPDF()">⬇︎ PDF</button>
     <button class="view-btn" onclick="exportToExcel()">⬇︎ Excel</button>
 </div>
+
+</div><!-- /sticky-nav -->
 
 <!-- Bottone Inserisci Ferie Animato -->
 <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
@@ -3367,17 +3416,21 @@ function handleCellClick(event, td, key, day, month, isSaturday){
         return; // Blocca se non è la propria riga
     }
 
-    // Se SHIFT è premuto, gestisci selezione
+    // Se SHIFT è premuto, gestisci selezione multipla
     if(event.shiftKey){
         event.preventDefault();
-        
-        // Se è la prima cella con SHIFT
+
+        // Non avviare selezione su celle non-feriali (sabati, domeniche, festivi)
+        // I sabati hanno classe 'holiday-col' oltre a 'editable'; le domeniche/festivi non hanno 'editable'
+        if(td.classList.contains('holiday-col')) return;
+
+        // Prima cella della selezione
         if(selectedCells.length === 0){
             selectedCells.push({ td: td, key: key });
             td.classList.add('cell-selected');
             lastClickedCell = td;
         }
-        // Se c'è già una cella selezionata, seleziona range
+        // Seconda cella: calcola range
         else if(lastClickedCell){
             selectRange(lastClickedCell, td);
         }
@@ -3397,27 +3450,44 @@ function handleCellClick(event, td, key, day, month, isSaturday){
 }
 
 function selectRange(startCell, endCell){
-    // Trova tutte le celle tra start e end
-    const allCells = Array.from(document.querySelectorAll('.editable:not(.holiday-col), .editable.presidio-cell'));
-    const startIdx = allCells.indexOf(startCell);
-    const endIdx = allCells.indexOf(endCell);
-    
+    // Trova la riga comune: la selezione è valida solo se entrambe le celle
+    // appartengono alla stessa <tr> (stessa riga utente)
+    const startRow = startCell.closest('tr');
+    const endRow   = endCell.closest('tr');
+
+    if(!startRow || !endRow || startRow !== endRow){
+        // Celle su righe diverse → ignora, non selezionare nulla di confuso
+        clearSelection();
+        // Seleziona almeno la cella di partenza
+        selectedCells.push({ td: startCell, key: startCell.getAttribute('data-key') });
+        startCell.classList.add('cell-selected');
+        lastClickedCell = startCell;
+        return;
+    }
+
+    // Raccoglie solo le celle feriali editabili della stessa riga
+    // (esclude domeniche, sabati non-presidio, festività → holiday-col)
+    const rowCells = Array.from(startRow.querySelectorAll('td.editable:not(.holiday-col)'));
+
+    const startIdx = rowCells.indexOf(startCell);
+    const endIdx   = rowCells.indexOf(endCell);
+
     if(startIdx === -1 || endIdx === -1) return;
-    
+
     const minIdx = Math.min(startIdx, endIdx);
     const maxIdx = Math.max(startIdx, endIdx);
-    
+
     clearSelection();
-    
+
     for(let i = minIdx; i <= maxIdx; i++){
-        const cell = allCells[i];
+        const cell = rowCells[i];
         selectedCells.push({
             td: cell,
             key: cell.getAttribute('data-key')
         });
         cell.classList.add('cell-selected');
     }
-    
+
     lastClickedCell = endCell;
 }
 
@@ -5142,6 +5212,14 @@ function setViewMobile(v) {
 
 // Aggiorna UI mobile ad ogni resize
 window.addEventListener('resize', syncMobileUI);
+
+// Ombra sullo sticky-nav: appare solo quando si è scrollato verso il basso
+window.addEventListener('scroll', function(){
+    const nav = document.getElementById('stickyNav');
+    if(nav){
+        nav.classList.toggle('scrolled', window.scrollY > 10);
+    }
+}, { passive: true });
 </script>
 
 <!-- ============ MOBILE BOTTOM ACTION BAR ============ -->
