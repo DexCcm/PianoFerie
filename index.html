@@ -420,6 +420,133 @@
         opacity: 0.7;
     }
 
+    /* ── MOBILE GOOGLE CALENDAR VIEW ── */
+    .mob-cal-user-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px 8px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+    }
+    .mob-cal-user-name {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--text-primary);
+        flex: 1;
+        text-align: center;
+    }
+    .mob-cal-own-badge {
+        display: inline-block;
+        font-size: 9px;
+        font-weight: 700;
+        background: #172754;
+        color: white;
+        border-radius: 4px;
+        padding: 1px 5px;
+        margin-left: 6px;
+        vertical-align: middle;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .mob-cal-nav-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 20px;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 8px;
+        line-height: 1;
+        min-width: 40px;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .mob-cal-nav-btn:active { background: var(--hover-bg); }
+    .mob-cal-nav-btn:disabled { opacity: 0.25; cursor: default; }
+
+    .mob-gcal-wrapper {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        margin-bottom: 14px;
+    }
+    .mob-gcal-month-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+        padding: 10px 14px 6px;
+    }
+    .mob-gcal-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        border-top: 1px solid var(--border-color);
+    }
+    .mob-gcal-header-cell {
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        padding: 5px 2px;
+        text-transform: uppercase;
+        background: var(--bg-primary);
+        border-bottom: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+    }
+    .mob-gcal-header-cell:last-child { border-right: none; }
+    .mob-gcal-day {
+        min-height: 54px;
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        padding: 4px 3px 3px;
+        background: var(--bg-secondary);
+        box-sizing: border-box;
+    }
+    .mob-gcal-day:nth-child(7n) { border-right: none; }
+    .mob-gcal-day.mob-gcal-empty { background: var(--bg-primary); }
+    .mob-gcal-day.mob-gcal-editable { cursor: pointer; }
+    .mob-gcal-day.mob-gcal-editable:active { background: var(--hover-bg); }
+    .mob-gcal-today .mob-gcal-num-inner {
+        background: #172754;
+        color: white !important;
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .mob-gcal-num {
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+    .mob-gcal-day.mob-gcal-sunday .mob-gcal-num,
+    .mob-gcal-day.mob-gcal-holiday .mob-gcal-num { color: #ef4444; }
+    .mob-gcal-chip {
+        font-size: 9px;
+        font-weight: 700;
+        text-align: center;
+        border-radius: 4px;
+        padding: 1px 3px;
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.5;
+        display: block;
+    }
+    .mob-gcal-chip.ferie-full  { background: #ef4444; color: white; }
+    .mob-gcal-chip.ferie-half  { background: #f97316; color: white; }
+    .mob-gcal-chip.ferie-morn  { background: #3b82f6; color: white; }
+    .mob-gcal-chip.ferie-aftn  { background: #8b5cf6; color: white; }
+    .mob-gcal-chip.ferie-other { background: #6b7280; color: white; }
+    .mob-gcal-chip.holiday-lbl { color: #ef4444; font-size: 8px; background: transparent; padding: 0; }
 
     /* ── Modal ferie: touch-friendly ── */
     .modal-panel {
@@ -492,11 +619,11 @@
 
 /* ── BOTTOM ACTION BAR - solo mobile ── */
 .mobile-bottom-bar {
-    display: none;
+    display: none; /* Sempre nascosta di default; viene mostrata da syncMobileUI() solo dopo il login */
 }
 @media (max-width: 768px) {
     .mobile-bottom-bar {
-        display: flex;
+        /* display gestito via JS - non impostare flex qui */
         position: fixed;
         bottom: 0;
         left: 0;
@@ -662,11 +789,29 @@
 /* Su mobile lo sticky è disabilitato: la bottom bar gestisce già nav mese */
 @media (max-width: 768px) {
     .sticky-nav {
-        position: static;
-        margin-left: 0;
-        margin-right: 0;
-        padding: 4px 0 0;
-        box-shadow: none !important;
+        /* Sticky abilitato anche su mobile */
+        margin-left: -8px;  /* compensa il padding body mobile (8px) */
+        margin-right: -8px;
+        padding: 6px 8px 4px;
+        /* Ombra sempre visibile su mobile per separare il nav dal contenuto */
+        box-shadow: none;
+    }
+    .sticky-nav.scrolled {
+        box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+    }
+    /* Compatta ulteriormente i margini interni su mobile */
+    .sticky-nav h1 {
+        font-size: 17px;
+        margin: 0 0 4px;
+    }
+    .sticky-nav .year-nav-bar {
+        margin-bottom: 4px !important;
+    }
+    .sticky-nav .calendar-header {
+        margin-bottom: 6px;
+    }
+    .sticky-nav .view-mode-bar {
+        margin: 0 0 2px;
     }
 }
 
@@ -2495,6 +2640,18 @@ body.user-mode #dashboardTable th{
   </div>
 </div>
 
+<!-- ============ MOBILE BOTTOM ACTION BAR ============ -->
+<div class="mobile-bottom-bar" id="mobileBottomBar">
+    <button class="mob-nav-btn" onclick="prevMonth()" title="Mese precedente">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ INSERISCI FERIE</button>
+    <button class="mob-nav-btn" onclick="nextMonth()" title="Mese successivo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+    <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
+</div>
+
 <!-- MODAL ANALISI UTENTE FULLSCREEN -->
 <div id="userAnalysisModal" class="user-analysis-modal">
     <div class="user-analysis-content">
@@ -2717,6 +2874,9 @@ let dataCache = {};
 let activeFilters = new Set(users);
 let currentYearUnsubscribe = null;
 const FIREBASE_META_KEY = '__meta';
+
+// ---- Mobile Google Calendar ----
+let mobileViewUserIndex = 0; // indice nell'array users per la vista mobile
 
 function sanitizeYearData(raw){
     if(!raw || typeof raw !== 'object') return {};
@@ -3221,6 +3381,13 @@ function render(){
 }
 
 function renderPlanner(){
+    // ---- MOBILE: Google Calendar view ----
+    if (window.innerWidth <= 768) {
+        renderMobileCalendar();
+        return;
+    }
+
+    // ---- DESKTOP: tabella planner originale ----
     const cont=document.getElementById("plannersContainer");
     cont.innerHTML="";
 
@@ -3325,6 +3492,180 @@ function renderPlanner(){
         <div class="planner-scroll-hint">← scorri per vedere tutti i giorni →</div>
         </div>`;
         cont.insertAdjacentHTML("beforeend",html);
+    });
+}
+
+// ================= MOBILE GOOGLE CALENDAR RENDER =================
+
+function getMobileViewUser() {
+    if (!window.usersList || window.usersList.length === 0) return currentUser;
+    // Clamp index
+    if (mobileViewUserIndex < 0) mobileViewUserIndex = 0;
+    if (mobileViewUserIndex >= window.usersList.length) mobileViewUserIndex = window.usersList.length - 1;
+    return window.usersList[mobileViewUserIndex];
+}
+
+function mobileUserPrev() {
+    if (mobileViewUserIndex > 0) {
+        mobileViewUserIndex--;
+        renderPlanner();
+    }
+}
+
+function mobileUserNext() {
+    if (mobileViewUserIndex < window.usersList.length - 1) {
+        mobileViewUserIndex++;
+        renderPlanner();
+    }
+}
+
+function renderMobileCalendar() {
+    const cont = document.getElementById("plannersContainer");
+    cont.innerHTML = "";
+
+    const u = getMobileViewUser();
+    const isOwnUser = (u === currentUser);
+    const totalUsers = window.usersList ? window.usersList.length : 1;
+
+    // ---- User selector bar ----
+    const userBar = document.createElement('div');
+    userBar.className = 'mob-cal-user-bar';
+    const prevDisabled = mobileViewUserIndex <= 0 ? 'disabled' : '';
+    const nextDisabled = mobileViewUserIndex >= totalUsers - 1 ? 'disabled' : '';
+    const ownBadge = isOwnUser ? '<span class="mob-cal-own-badge">Tu</span>' : '';
+    userBar.innerHTML = `
+        <button class="mob-cal-nav-btn" onclick="mobileUserPrev()" ${prevDisabled}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <span class="mob-cal-user-name">${u}${ownBadge}</span>
+        <button class="mob-cal-nav-btn" onclick="mobileUserNext()" ${nextDisabled}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+    `;
+    cont.appendChild(userBar);
+
+    // ---- Determine months to show ----
+    let idxs = [currentMonth];
+    if (viewMode === "quarter") { const s = Math.floor(currentMonth/3)*3; idxs = [s,s+1,s+2]; }
+    if (viewMode === "half")    { idxs = currentMonth < 6 ? [0,1,2,3,4,5] : [6,7,8,9,10,11]; }
+    if (viewMode === "year")    { idxs = [0,1,2,3,4,5,6,7,8,9,10,11]; }
+
+    const today = new Date();
+    const todayDay   = today.getDate();
+    const todayMonth = today.getMonth();
+    const todayYear  = today.getFullYear();
+
+    const canEdit = isOwnUser;
+    const dayNames = ['L','M','M','G','V','S','D'];
+
+    idxs.forEach(mi => {
+        const m = months[mi];
+
+        // wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mob-gcal-wrapper';
+
+        // month title
+        const title = document.createElement('div');
+        title.className = 'mob-gcal-month-title';
+        title.textContent = `${m.n} ${currentYear}`;
+        wrapper.appendChild(title);
+
+        // grid
+        const grid = document.createElement('div');
+        grid.className = 'mob-gcal-grid';
+
+        // header row: Lun Mon … Dom
+        const orderedDayNames = ['L','M','M','G','V','S','D'];
+        orderedDayNames.forEach(dn => {
+            const hc = document.createElement('div');
+            hc.className = 'mob-gcal-header-cell';
+            hc.textContent = dn;
+            grid.appendChild(hc);
+        });
+
+        // First day of month: getDay() returns 0=Sun..6=Sat; we want 0=Mon
+        const firstDow = new Date(currentYear, mi, 1).getDay(); // 0=Sun,1=Mon,...6=Sat
+        const offsetMon = (firstDow === 0) ? 6 : firstDow - 1; // Mon=0 … Sun=6
+
+        // Empty cells before day 1
+        for (let e = 0; e < offsetMon; e++) {
+            const empty = document.createElement('div');
+            empty.className = 'mob-gcal-day mob-gcal-empty';
+            grid.appendChild(empty);
+        }
+
+        // Day cells
+        for (let d = 1; d <= m.d; d++) {
+            const wd = new Date(currentYear, mi, d).getDay(); // 0=Sun,6=Sat
+            const key = `${u}-${currentYear}-${mi + 1}-${d}`;
+            const v = dataCache[key] || "";
+            const isHoliday = m.h.includes(d);
+            const isSunday  = wd === 0;
+            const isSaturday = wd === 6;
+            const isToday = (currentYear === todayYear && mi === todayMonth && d === todayDay);
+
+            const cell = document.createElement('div');
+            cell.className = 'mob-gcal-day';
+            if (isSunday)  cell.classList.add('mob-gcal-sunday');
+            if (isHoliday) cell.classList.add('mob-gcal-holiday');
+            if (isToday)   cell.classList.add('mob-gcal-today');
+            if (canEdit && !isSunday && !isHoliday) cell.classList.add('mob-gcal-editable');
+
+            // Day number
+            const numDiv = document.createElement('div');
+            numDiv.className = 'mob-gcal-num';
+            if (isToday) {
+                numDiv.innerHTML = `<span class="mob-gcal-num-inner">${d}</span>`;
+            } else {
+                numDiv.textContent = d;
+            }
+            cell.appendChild(numDiv);
+
+            // Holiday label
+            if (isHoliday) {
+                const chip = document.createElement('span');
+                chip.className = 'mob-gcal-chip holiday-lbl';
+                chip.textContent = 'F';
+                cell.appendChild(chip);
+            } else if (isSunday) {
+                const chip = document.createElement('span');
+                chip.className = 'mob-gcal-chip holiday-lbl';
+                chip.textContent = 'D';
+                cell.appendChild(chip);
+            } else if (isSaturday && !v) {
+                const chip = document.createElement('span');
+                chip.className = 'mob-gcal-chip holiday-lbl';
+                chip.textContent = 'S';
+                cell.appendChild(chip);
+            } else if (v) {
+                // Value chip
+                const chip = document.createElement('span');
+                let chipClass = 'ferie-other';
+                let chipText = v;
+                if (v === '8')              { chipClass = 'ferie-full';  chipText = '8h'; }
+                else if (v === '4 M')       { chipClass = 'ferie-morn';  chipText = '4M'; }
+                else if (v === '4 P')       { chipClass = 'ferie-aftn';  chipText = '4P'; }
+                else if (v.endsWith(' M'))  { chipClass = 'ferie-morn';  chipText = v.replace(' M','')+'M'; }
+                else if (v.endsWith(' P'))  { chipClass = 'ferie-aftn';  chipText = v.replace(' P','')+'P'; }
+                else if (v.startsWith('R-')){ chipClass = 'ferie-other'; chipText = 'R'; }
+                chip.className = `mob-gcal-chip ${chipClass}`;
+                chip.textContent = chipText;
+                cell.appendChild(chip);
+            }
+
+            // Click handler (only own user, non-holiday, non-sunday)
+            if (canEdit && !isSunday && !isHoliday) {
+                cell.addEventListener('click', () => {
+                    openModal(cell, key, d, mi, isSaturday);
+                });
+            }
+
+            grid.appendChild(cell);
+        }
+
+        wrapper.appendChild(grid);
+        cont.appendChild(wrapper);
     });
 }
 
@@ -3704,6 +4045,8 @@ async function applyValue(v){
         calculateStats();
         renderDashboard();
         renderChart();
+        // Su mobile il planner è un grid ricreato, va re-renderizzato
+        if (window.innerWidth <= 768) renderPlanner();
     } catch(err) {
         console.error('Errore salvataggio Firebase:', err);
         if(previousValue){
@@ -3715,6 +4058,7 @@ async function applyValue(v){
         calculateStats();
         renderDashboard();
         renderChart();
+        if (window.innerWidth <= 768) renderPlanner();
         alert('Errore salvataggio. Riprova.');
     }
 }
@@ -5132,6 +5476,12 @@ function applyUserPermissions() {
         }
     }
     
+    // ---- Reset mobile view user index to currentUser ----
+    if (window.usersList && window.usersList.length > 0) {
+        const idx = window.usersList.indexOf(currentUser);
+        mobileViewUserIndex = idx >= 0 ? idx : 0;
+    }
+
     // Floating Easter Egg GIF — basata sull'email dell'utente corrente
     const easterEggMap = {
         'damiano.angioletti@dataexpert.it': 'RanaSpecchio.gif',
@@ -5159,6 +5509,8 @@ function applyUserPermissions() {
 // Espone funzioni per eventuali riferimenti esterni (fallback)
 window.signIn = signIn;
 window.signOut = typeof signOut === 'function' ? signOut : undefined;
+window.mobileUserPrev = mobileUserPrev;
+window.mobileUserNext = mobileUserNext;
 
 // ================= MOBILE HELPERS =================
 
@@ -5245,35 +5597,6 @@ window.addEventListener('scroll', function(){
     }
 }, { passive: true });
 </script>
-
-<!-- ============ MOBILE BOTTOM ACTION BAR ============ -->
-<div class="mobile-bottom-bar" id="mobileBottomBar">
-    <!-- Prev month -->
-    <button class="mob-nav-btn" onclick="prevMonth()" title="Mese precedente">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    </button>
-
-    <!-- Inserisci ferie (replicato dalla posizione desktop) -->
-    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ INSERISCI FERIE</button>
-
-    <!-- Next month -->
-    <button class="mob-nav-btn" onclick="nextMonth()" title="Mese successivo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </button>
-
-    <!-- Altro (drawer) -->
-    <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
-</div>
-
-<!-- Drawer "Altro" commentato al momento  -->
-  <!--
-<div class="mob-extras-drawer" id="mobExtrasDrawer">
-    <button class="mob-drawer-item" onclick="setViewMobile('half'); closeMobExtras()">📅 Semestre</button>
-    <button class="mob-drawer-item" onclick="setViewMobile('year'); closeMobExtras()">🗓️ Anno intero</button>
-    <button class="mob-drawer-item" onclick="exportToPDF(); closeMobExtras()">⬇︎ Esporta PDF</button>
-    <button class="mob-drawer-item" onclick="exportToExcel(); closeMobExtras()">⬇︎ Esporta Excel</button>
-</div> 
-  -->
 
 
 </body>
