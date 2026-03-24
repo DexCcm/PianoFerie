@@ -833,12 +833,13 @@ body{
     transition:background 0.3s ease, color 0.3s ease;
 }
 
-  /* ── Zoom per schermi ~24" a 1920x1080: riduce tutto del 20% ── */
+/* ── Zoom per schermi ~24" a 1920x1080: riduce tutto del 20% ── */
 @media screen and (max-width: 1920px) and (max-height: 1084px) {
     #appContainer {
         zoom: 0.80;
     }
 }
+
 /* ================= LOGO HEADER ================= */
 .logo-box{
     width:100%;
@@ -1276,6 +1277,44 @@ th.member-name,td.member-name{
     color:var(--title-blue);
     font-weight:600;
     font-size:14px;
+}
+
+/* ── Ghost header fisso per il planner ── */
+#plannerGhostHeader {
+    position: fixed;
+    z-index: 180;
+    overflow: hidden;
+    pointer-events: none;
+    display: none;
+    background: var(--bg-secondary);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.10);
+}
+#plannerGhostHeader table {
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+#plannerGhostHeader th {
+    border: 1px solid var(--border-color);
+    padding: 6px;
+    height: 38px;
+    white-space: nowrap;
+    font-size: 14px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+#plannerGhostHeader .weekday-row th {
+    background: #EFF3FE;
+    color: var(--title-blue);
+    font-weight: 600;
+}
+[data-theme="dark"] #plannerGhostHeader .weekday-row th {
+    background: #1e3a5f;
+}
+#plannerGhostHeader th.member-name {
+    background: var(--bg-secondary);
+    font-weight: 700;
+    color: var(--text-secondary);
 }
 .holiday-col{
     background:#fde6b3;
@@ -2441,7 +2480,7 @@ body.user-mode #dashboardTable th{
 
 <div class="sticky-nav" id="stickyNav">
 
-<h1>Piano Ferie <span id="yearLabel">2026</span></h1>
+<h1>Planner Annuale <span id="yearLabel">2026</span></h1>
 
 <div class="year-nav-bar" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
     <button class="nav-btn" onclick="changeYear(-1)">
@@ -3474,6 +3513,7 @@ function render(){
     renderChart();
     calculateStats();
     renderFilters();
+    if (window.syncPlannerGhost) requestAnimationFrame(window.syncPlannerGhost);
 }
 
 function renderPlanner(){
@@ -5041,8 +5081,8 @@ window.initApp = async function() {
 </div>
 <!-- Fine APP CONTAINER -->
 
-<!-- Floating Gatta  -->
-<img id="floatingGatta" src="Images/gatta.gif" alt="Gatta" class="floating-gatta" style="display:none;" title="🐱 Miao!">
+<!-- Floating mascotte personalizzata per utente -->
+<img id="floatingGatta" src="" alt="Mascotte" class="floating-gatta" style="display:none;">
   
 
 <script>
@@ -5591,18 +5631,20 @@ function applyUserPermissions() {
         mobileViewUserIndex = idx >= 0 ? idx : 0;
     }
 
-    // Floating Easter Egg GIF — basata sull'email dell'utente corrente
+    // Floating mascotte personalizzata per utente
     const easterEggMap = {
-        'damiano.angioletti@dataexpert.it': 'Images/RanaSpecchio.gif',
-        'samuela.carnelli@dataexpert.it':   'Images/gatta.gif',
-        'simone.viscomi@dataexpert.it':    'Images/gatta.gif',
-        'luigi.ferrara@dataexpert.it':    'Images/gatta.gif'
+        'damiano.angioletti@dataexpert.it': { src: 'Images/RanaSpecchio.gif', title: 'Tutel 🐸!' },
+        'samuela.carnelli@dataexpert.it':   { src: 'Images/gatta.gif',        title: 'Miao 🐱!' },
+        'simone.viscomi@dataexpert.it':     { src: 'Images/gatta.gif',        title: 'Miao 🐱!'  },
+        'leonardo.fantozzi@dataexpert.it':  { src: 'Images/rx78.gif',        title: 'Gundam Epyon 🤖!'  },
+        'luigi.ferrara@dataexpert.it':      { src: 'Images/gatta.gif',        title: 'Miao 🐱!'   }
     };
     const floatingGatta = document.getElementById('floatingGatta');
     if (floatingGatta) {
-        const gif = easterEggMap[currentUserEmail ? currentUserEmail.toLowerCase() : ''];
-        if (gif) {
-            floatingGatta.src = gif;
+        const entry = easterEggMap[currentUserEmail ? currentUserEmail.toLowerCase() : ''];
+        if (entry) {
+            floatingGatta.src = entry.src;
+            floatingGatta.title = entry.title;
             floatingGatta.style.display = 'block';
         } else {
             floatingGatta.style.display = 'none';
@@ -5745,6 +5787,109 @@ window.addEventListener('scroll', function(){
             tip.style.top  = (e.clientY - 28) + 'px';
         }
     });
+})();
+</script>
+
+<!-- Ghost header fisso per planner -->
+<div id="plannerGhostHeader"></div>
+
+<script>
+(function(){
+    var ghost = document.getElementById('plannerGhostHeader');
+    var rafPending = false;
+
+    function syncGhost() {
+        rafPending = false;
+
+        // Solo desktop
+        if (window.innerWidth <= 768) { ghost.style.display = 'none'; return; }
+
+        // Cerca il primo planner-box visibile
+        var box = document.querySelector('.planner-box');
+        if (!box) { ghost.style.display = 'none'; return; }
+
+        var thead = box.querySelector('thead');
+        if (!thead) { ghost.style.display = 'none'; return; }
+
+        var navEl = document.getElementById('stickyNav');
+        var navBottom = navEl ? navEl.getBoundingClientRect().bottom : 0;
+
+        var boxRect = box.getBoundingClientRect();
+        var theadRect = thead.getBoundingClientRect();
+
+        // Il thead è già visibile sopra il nav → nascondi ghost
+        if (theadRect.top >= navBottom) { ghost.style.display = 'none'; return; }
+        // Il box è completamente uscito dallo schermo → nascondi ghost
+        if (boxRect.bottom <= navBottom + 10) { ghost.style.display = 'none'; return; }
+
+        // Deve apparire: aggiorna dimensioni e contenuto
+        // Clona il thead solo se cambia il numero di colonne (cambio mese/view)
+        var existingCols = ghost.querySelectorAll('th').length;
+        var realCols = thead.querySelectorAll('th').length;
+        if (existingCols !== realCols) {
+            rebuildGhost(thead, box);
+        }
+
+        // Allinea larghezze colonne con la tabella reale
+        syncColumnWidths(thead, box);
+
+        // Posiziona il ghost
+        ghost.style.top  = navBottom + 'px';
+        ghost.style.left = boxRect.left + 'px';
+        ghost.style.width = boxRect.width + 'px';
+        ghost.style.display = 'block';
+
+        // Sync scroll orizzontale
+        ghost.scrollLeft = box.scrollLeft;
+    }
+
+    function rebuildGhost(thead, box) {
+        var tbl = document.createElement('table');
+        tbl.className = 'planner';
+        tbl.style.borderCollapse = 'collapse';
+        tbl.appendChild(thead.cloneNode(true));
+        ghost.innerHTML = '';
+        ghost.appendChild(tbl);
+    }
+
+    function syncColumnWidths(thead, box) {
+        var realThs = thead.querySelectorAll('tr:first-child th');
+        var ghostThs = ghost.querySelectorAll('tr:first-child th');
+        for (var i = 0; i < realThs.length && i < ghostThs.length; i++) {
+            var w = realThs[i].getBoundingClientRect().width;
+            ghostThs[i].style.width = w + 'px';
+            ghostThs[i].style.minWidth = w + 'px';
+            ghostThs[i].style.maxWidth = w + 'px';
+        }
+        // Seconda riga
+        var realThs2 = thead.querySelectorAll('tr:nth-child(2) th');
+        var ghostThs2 = ghost.querySelectorAll('tr:nth-child(2) th');
+        for (var j = 0; j < realThs2.length && j < ghostThs2.length; j++) {
+            var w2 = realThs2[j].getBoundingClientRect().width;
+            ghostThs2[j].style.width = w2 + 'px';
+            ghostThs2[j].style.minWidth = w2 + 'px';
+            ghostThs2[j].style.maxWidth = w2 + 'px';
+        }
+    }
+
+    function scheduleSync() {
+        if (!rafPending) { rafPending = true; requestAnimationFrame(syncGhost); }
+    }
+
+    window.addEventListener('scroll', scheduleSync, { passive: true });
+    window.addEventListener('resize', scheduleSync, { passive: true });
+
+    // Sync anche quando il planner-box scrolla orizzontalmente
+    document.addEventListener('scroll', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('planner-box')) {
+            if (ghost.style.display !== 'none') {
+                ghost.scrollLeft = e.target.scrollLeft;
+            }
+        }
+    }, true);
+
+    // Espone per chiamata dopo render
+    window.syncPlannerGhost = scheduleSync;
 })();
 </script>
 
