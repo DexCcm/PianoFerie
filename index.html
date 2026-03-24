@@ -1232,7 +1232,7 @@ h1{
 .planner-box{
     border-radius:14px;
     overflow-x:auto;
-    overflow-y:visible;
+    overflow-y:hidden;
     background:var(--bg-secondary);
     box-shadow:0 4px 14px rgba(0,0,0,.08);
     -webkit-overflow-scrolling: touch;
@@ -1271,26 +1271,6 @@ th.member-name,td.member-name{
     font-weight:600;
     font-size:14px;
 }
-
-/* ── Sticky thead planner ── */
-.planner thead {
-    position: sticky;
-    top: var(--planner-thead-top, 0px);
-    z-index: 20;
-}
-.planner thead th {
-    background: var(--bg-secondary);
-}
-.planner thead .weekday-row th {
-    background: #EFF3FE;
-}
-[data-theme="dark"] .planner thead .weekday-row th {
-    background: #1e3a5f;
-}
-.planner thead th.member-name {
-    background: var(--bg-secondary) !important;
-}
-
 .holiday-col{
     background:#fde6b3;
     cursor:not-allowed;
@@ -3488,7 +3468,6 @@ function render(){
     renderChart();
     calculateStats();
     renderFilters();
-    requestAnimationFrame(updatePlannerStickyTop);
 }
 
 function renderPlanner(){
@@ -5712,14 +5691,6 @@ function setViewMobile(v) {
 
 // Aggiorna UI mobile ad ogni resize
 window.addEventListener('resize', syncMobileUI);
-window.addEventListener('resize', updatePlannerStickyTop);
-
-function updatePlannerStickyTop() {
-    const nav = document.getElementById('stickyNav');
-    if (!nav) return;
-    const h = nav.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--planner-thead-top', h + 'px');
-}
 
 // Ombra sullo sticky-nav: appare solo quando si è scrollato verso il basso
 window.addEventListener('scroll', function(){
