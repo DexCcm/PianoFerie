@@ -2480,7 +2480,7 @@ body.user-mode #dashboardTable th{
 
 <div class="sticky-nav" id="stickyNav">
 
-<h1>Planner Annuale <span id="yearLabel">2026</span></h1>
+<h1>Piano Ferie <span id="yearLabel">2026</span></h1>
 
 <div class="year-nav-bar" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
     <button class="nav-btn" onclick="changeYear(-1)">
@@ -4972,7 +4972,9 @@ async function loadUsersFromFirebase() {
         for (const [cognome, userData] of Object.entries(usersData)) {
             usersConfig[cognome] = {
                 email: userData.email || '',
-                role: userData.role || 'user'
+                role: userData.role || 'user',
+                mascotte:      userData.mascotte      || null,
+                mascotteTitle: userData.mascotteTitle || null
             };
             users.push(cognome);
         }
@@ -5631,20 +5633,14 @@ function applyUserPermissions() {
         mobileViewUserIndex = idx >= 0 ? idx : 0;
     }
 
-    // Floating mascotte personalizzata per utente
-    const easterEggMap = {
-        'damiano.angioletti@dataexpert.it': { src: 'Images/RanaSpecchio.gif', title: 'Tutel 🐸!' },
-        'samuela.carnelli@dataexpert.it':   { src: 'Images/gatta.gif',        title: 'Miao 🐱!' },
-        'simone.viscomi@dataexpert.it':     { src: 'Images/gatta.gif',        title: 'Miao 🐱!'  },
-        'leonardo.fantozzi@dataexpert.it':  { src: 'Images/rx78.gif',        title: 'Gundam Epyon 🤖!'  },
-        'luigi.ferrara@dataexpert.it':      { src: 'Images/gatta.gif',        title: 'Miao 🐱!'   }
-    };
+    // Floating mascotte personalizzata per utente — dati da Firebase (usersConfig)
     const floatingGatta = document.getElementById('floatingGatta');
-    if (floatingGatta) {
-        const entry = easterEggMap[currentUserEmail ? currentUserEmail.toLowerCase() : ''];
-        if (entry) {
-            floatingGatta.src = entry.src;
-            floatingGatta.title = entry.title;
+    if (floatingGatta && currentUser && usersConfig[currentUser]) {
+        const mascotte      = usersConfig[currentUser].mascotte;
+        const mascotteTitle = usersConfig[currentUser].mascotteTitle;
+        if (mascotte) {
+            floatingGatta.src   = mascotte;
+            floatingGatta.title = mascotteTitle || '';
             floatingGatta.style.display = 'block';
         } else {
             floatingGatta.style.display = 'none';
