@@ -457,7 +457,6 @@
         cursor: pointer;
         padding: 4px 8px;
         border-radius: 8px;
-        line-height: 1;
         min-width: 40px;
         min-height: 40px;
         display: flex;
@@ -466,7 +465,6 @@
     }
     .mob-cal-nav-btn:active { background: var(--hover-bg); }
     .mob-cal-nav-btn:disabled { opacity: 0.25; cursor: default; }
-
     .mob-gcal-wrapper {
         background: var(--bg-secondary);
         border-radius: 12px;
@@ -542,11 +540,20 @@
         display: block;
     }
     .mob-gcal-chip.ferie-full  { background: #ef4444; color: white; }
-    .mob-gcal-chip.ferie-half  { background: #f97316; color: white; }
     .mob-gcal-chip.ferie-morn  { background: #3b82f6; color: white; }
     .mob-gcal-chip.ferie-aftn  { background: #8b5cf6; color: white; }
     .mob-gcal-chip.ferie-other { background: #6b7280; color: white; }
     .mob-gcal-chip.holiday-lbl { color: #ef4444; font-size: 8px; background: transparent; padding: 0; }
+    .mob-gcal-range-lbl {
+        font-size: 8px;
+        color: var(--text-secondary);
+        text-align: center;
+        display: block;
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
     /* ── Modal ferie: touch-friendly ── */
     .modal-panel {
@@ -2567,25 +2574,93 @@ body.user-mode #dashboardTable th{
         <button class="btn-full-day" onclick="applyValue('8')">Giornata intera · 8 ore</button>
 
         <div class="modal-section">
-            <div class="modal-section-title">Mattina (09:00 – 13:00)</div>
-            <div class="modal-hours">
-                <button class="hour-btn" onclick="applyValue('1 M')">1 ora</button>
-                <button class="hour-btn" onclick="applyValue('2 M')">2 ore</button>
-                <button class="hour-btn" onclick="applyValue('3 M')">3 ore</button>
-                <button class="hour-btn" onclick="applyValue('4 M')">4 ore</button>
-               <!--  <button class="hour-btn" onclick="applyValue('5 M')">5 ore</button>--> 
+            <div class="modal-section-title">Permesso Mattina</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+                <div style="flex:1">
+                    <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Dalle</label>
+                    <select id="permMornFrom" style="width:100%;padding:9px 8px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;background:white;color:#172754;">
+                        <option value="09:00">09:00</option>
+                        <option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option>
+                        <option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option>
+                        <option value="11:30">11:30</option>
+                        <option value="12:00">12:00</option>
+                        <option value="12:30">12:30</option>
+                    </select>
+                </div>
+                <div style="flex:1">
+                    <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Alle</label>
+                    <select id="permMornTo" style="width:100%;padding:9px 8px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;background:white;color:#172754;">
+                        <option value="09:30">09:30</option>
+                        <option value="10:00">10:00</option>
+                        <option value="10:30">10:30</option>
+                        <option value="11:00">11:00</option>
+                        <option value="11:30">11:30</option>
+                        <option value="12:00">12:00</option>
+                        <option value="12:30">12:30</option>
+                        <option value="13:00" selected>13:00</option>
+                    </select>
+                </div>
+                <button onclick="applyPermesso('M')" style="
+                    margin-top:16px;
+                    padding:9px 14px;
+                    background:#3b82f6;
+                    color:white;
+                    border:none;
+                    border-radius:8px;
+                    font-size:13px;
+                    font-weight:700;
+                    cursor:pointer;
+                    white-space:nowrap;
+                    flex-shrink:0;
+                ">OK</button>
             </div>
         </div>
 
         <div class="modal-section">
-            <div class="modal-section-title">Pomeriggio (14:00 – 18:00)</div>
-            <div class="modal-hours">
-                <button class="hour-btn" onclick="applyValue('1 P')">1 ora</button>
-                <button class="hour-btn" onclick="applyValue('2 P')">2 ore</button>
-                <button class="hour-btn" onclick="applyValue('3 P')">3 ore</button>
-                <button class="hour-btn" onclick="applyValue('4 P')">4 ore</button>
-               <!-- <button class="hour-btn" onclick="applyValue('5 P')">5 ore</button>-->  
-          </div>
+            <div class="modal-section-title">Permesso Pomeriggio</div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+                <div style="flex:1">
+                    <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Dalle</label>
+                    <select id="permAftnFrom" style="width:100%;padding:9px 8px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;background:white;color:#172754;">
+                        <option value="14:00" selected>14:00</option>
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                        <option value="16:00">16:00</option>
+                        <option value="16:30">16:30</option>
+                        <option value="17:00">17:00</option>
+                        <option value="17:30">17:30</option>
+                    </select>
+                </div>
+                <div style="flex:1">
+                    <label style="font-size:11px;color:#6b7280;display:block;margin-bottom:3px;">Alle</label>
+                    <select id="permAftnTo" style="width:100%;padding:9px 8px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;background:white;color:#172754;">
+                        <option value="14:30">14:30</option>
+                        <option value="15:00">15:00</option>
+                        <option value="15:30">15:30</option>
+                        <option value="16:00">16:00</option>
+                        <option value="16:30">16:30</option>
+                        <option value="17:00">17:00</option>
+                        <option value="17:30">17:30</option>
+                        <option value="18:00" selected>18:00</option>
+                    </select>
+                </div>
+                <button onclick="applyPermesso('P')" style="
+                    margin-top:16px;
+                    padding:9px 14px;
+                    background:#8b5cf6;
+                    color:white;
+                    border:none;
+                    border-radius:8px;
+                    font-size:13px;
+                    font-weight:700;
+                    cursor:pointer;
+                    white-space:nowrap;
+                    flex-shrink:0;
+                ">OK</button>
+            </div>
         </div>
     </div>
 
@@ -2638,18 +2713,6 @@ body.user-mode #dashboardTable th{
         <button class="cancel-btn" onclick="closeRangeModal()">Annulla</button>
     </div>
   </div>
-</div>
-
-<!-- ============ MOBILE BOTTOM ACTION BAR ============ -->
-<div class="mobile-bottom-bar" id="mobileBottomBar">
-    <button class="mob-nav-btn" onclick="prevMonth()" title="Mese precedente">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    </button>
-    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ INSERISCI FERIE</button>
-    <button class="mob-nav-btn" onclick="nextMonth()" title="Mese successivo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </button>
-    <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
 </div>
 
 <!-- MODAL ANALISI UTENTE FULLSCREEN -->
@@ -2874,9 +2937,8 @@ let dataCache = {};
 let activeFilters = new Set(users);
 let currentYearUnsubscribe = null;
 const FIREBASE_META_KEY = '__meta';
-
 // ---- Mobile Google Calendar ----
-let mobileViewUserIndex = 0; // indice nell'array users per la vista mobile
+let mobileViewUserIndex = 0;
 
 function sanitizeYearData(raw){
     if(!raw || typeof raw !== 'object') return {};
@@ -2888,10 +2950,12 @@ function sanitizeYearData(raw){
     return clean;
 }
 
-function updateCellVisualState(td, value){
+function updateCellVisualState(td, value, rangeLabel){
     if(!td) return;
     td.textContent = "";
     td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell');
+    // Rimuovi attributi range precedenti
+    td.removeAttribute('data-range');
 
     const isSaturday = td.dataset && td.dataset.saturday === 'true';
 
@@ -2904,16 +2968,20 @@ function updateCellVisualState(td, value){
         } else if(value){
             td.textContent = value;
         } else {
-            td.textContent = "S"; // Ripristina "S" quando il valore viene rimosso
+            td.textContent = "S";
         }
         return;
     }
 
     if(!value) return;
-    td.textContent = value;
+    // Display compatto: "1.5 M" → "1.5M", "2 P" → "2P"
+    const displayVal = value.replace(' M','M').replace(' P','P');
+    td.textContent = displayVal;
     if(value === '8') td.classList.add('full-day');
     else if(String(value).endsWith('M')) td.classList.add('morning-partial');
     else if(String(value).endsWith('P')) td.classList.add('afternoon-partial');
+    // Tooltip range
+    if(rangeLabel) td.setAttribute('data-range', rangeLabel);
 }
 
 async function ensureYearRootExists(year){
@@ -2934,7 +3002,7 @@ const parseHours=v=>{
     if(!v) return 0;
     if(v.startsWith && v.startsWith('R-')) return 0; // Presidio non conta come ferie
     if(v==="8") return 8;
-    return parseInt(v);
+    return parseFloat(v) || 0;
 };
 const parseDays=v=>parseHours(v)/8;
 
@@ -3052,6 +3120,28 @@ async function setFirebaseValue(key, value) {
         console.error("Errore scrittura Firebase:", error);
         throw error;
     }
+}
+
+// Salva/cancella il range orario associato a una cella permesso
+async function setFirebaseRange(key, rangeLabel) {
+    const rangeKey = key + '__range';
+    try {
+        const dbRef = window.firebaseDB.ref(`ferie${currentYear}/${rangeKey}`);
+        if (rangeLabel) {
+            await window.firebaseDB.set(dbRef, rangeLabel);
+            dataCache[rangeKey] = rangeLabel;
+        } else {
+            await window.firebaseDB.remove(dbRef);
+            delete dataCache[rangeKey];
+        }
+    } catch (error) {
+        console.error("Errore scrittura range Firebase:", error);
+        // Non bloccante: il valore principale è già salvato
+    }
+}
+
+function getRangeLabel(key) {
+    return dataCache[key + '__range'] || null;
 }
 
 function setupRealtimeListener() {
@@ -3381,13 +3471,7 @@ function render(){
 }
 
 function renderPlanner(){
-    // ---- MOBILE: Google Calendar view ----
-    if (window.innerWidth <= 768) {
-        renderMobileCalendar();
-        return;
-    }
-
-    // ---- DESKTOP: tabella planner originale ----
+    if (window.innerWidth <= 768) { renderMobileCalendar(); return; }
     const cont=document.getElementById("plannersContainer");
     cont.innerHTML="";
 
@@ -3477,11 +3561,12 @@ function renderPlanner(){
                     if(v==="8")cls+=" full-day";
                     if(v.endsWith("M"))cls+=" morning-partial";
                     if(v.endsWith("P"))cls+=" afternoon-partial";
+                    const displayV = v ? v.replace(' M','M').replace(' P','P') : '';
+                    const rangeAttr = v && getRangeLabel(key) ? ` data-range="${getRangeLabel(key)}"` : '';
                     if(canEditRow){
-                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}" data-saturday="false">${v}</td>`;
+                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}" data-saturday="false"${rangeAttr}>${displayV}</td>`;
                 } else {
-                    // Celle non editabili per USER su altri utenti
-                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="false">${v}</td>`;
+                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="false"${rangeAttr}>${displayV}</td>`;
                 }
                 }
             }
@@ -3495,177 +3580,140 @@ function renderPlanner(){
     });
 }
 
-// ================= MOBILE GOOGLE CALENDAR RENDER =================
+// ================= MOBILE GOOGLE CALENDAR =================
 
-function getMobileViewUser() {
-    if (!window.usersList || window.usersList.length === 0) return currentUser;
-    // Clamp index
-    if (mobileViewUserIndex < 0) mobileViewUserIndex = 0;
-    if (mobileViewUserIndex >= window.usersList.length) mobileViewUserIndex = window.usersList.length - 1;
-    return window.usersList[mobileViewUserIndex];
+function getMobileViewUser(){
+    const list = window.usersList;
+    if(!list || list.length === 0) return currentUser;
+    mobileViewUserIndex = Math.max(0, Math.min(mobileViewUserIndex, list.length - 1));
+    return list[mobileViewUserIndex];
 }
 
-function mobileUserPrev() {
-    if (mobileViewUserIndex > 0) {
-        mobileViewUserIndex--;
-        renderPlanner();
-    }
-}
+function mobileUserPrev(){ if(mobileViewUserIndex > 0){ mobileViewUserIndex--; renderPlanner(); } }
+function mobileUserNext(){ if(window.usersList && mobileViewUserIndex < window.usersList.length - 1){ mobileViewUserIndex++; renderPlanner(); } }
 
-function mobileUserNext() {
-    if (mobileViewUserIndex < window.usersList.length - 1) {
-        mobileViewUserIndex++;
-        renderPlanner();
-    }
-}
-
-function renderMobileCalendar() {
+function renderMobileCalendar(){
     const cont = document.getElementById("plannersContainer");
     cont.innerHTML = "";
 
     const u = getMobileViewUser();
-    const isOwnUser = (u === currentUser);
-    const totalUsers = window.usersList ? window.usersList.length : 1;
+    const isOwn = (u === currentUser);
+    const total = window.usersList ? window.usersList.length : 1;
 
-    // ---- User selector bar ----
-    const userBar = document.createElement('div');
-    userBar.className = 'mob-cal-user-bar';
-    const prevDisabled = mobileViewUserIndex <= 0 ? 'disabled' : '';
-    const nextDisabled = mobileViewUserIndex >= totalUsers - 1 ? 'disabled' : '';
-    const ownBadge = isOwnUser ? '<span class="mob-cal-own-badge">Tu</span>' : '';
-    userBar.innerHTML = `
-        <button class="mob-cal-nav-btn" onclick="mobileUserPrev()" ${prevDisabled}>
+    // User selector bar
+    const bar = document.createElement('div');
+    bar.className = 'mob-cal-user-bar';
+    bar.innerHTML = `
+        <button class="mob-cal-nav-btn" onclick="mobileUserPrev()" ${mobileViewUserIndex <= 0 ? 'disabled' : ''}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </button>
-        <span class="mob-cal-user-name">${u}${ownBadge}</span>
-        <button class="mob-cal-nav-btn" onclick="mobileUserNext()" ${nextDisabled}>
+        <span class="mob-cal-user-name">${u}${isOwn ? '<span class="mob-cal-own-badge">Tu</span>' : ''}</span>
+        <button class="mob-cal-nav-btn" onclick="mobileUserNext()" ${mobileViewUserIndex >= total - 1 ? 'disabled' : ''}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        </button>
-    `;
-    cont.appendChild(userBar);
+        </button>`;
+    cont.appendChild(bar);
 
-    // ---- Determine months to show ----
+    // Months to show
     let idxs = [currentMonth];
-    if (viewMode === "quarter") { const s = Math.floor(currentMonth/3)*3; idxs = [s,s+1,s+2]; }
-    if (viewMode === "half")    { idxs = currentMonth < 6 ? [0,1,2,3,4,5] : [6,7,8,9,10,11]; }
-    if (viewMode === "year")    { idxs = [0,1,2,3,4,5,6,7,8,9,10,11]; }
+    if(viewMode==="quarter"){ const s=Math.floor(currentMonth/3)*3; idxs=[s,s+1,s+2]; }
+    if(viewMode==="half")   { idxs=currentMonth<6?[0,1,2,3,4,5]:[6,7,8,9,10,11]; }
+    if(viewMode==="year")   { idxs=[0,1,2,3,4,5,6,7,8,9,10,11]; }
 
     const today = new Date();
-    const todayDay   = today.getDate();
-    const todayMonth = today.getMonth();
-    const todayYear  = today.getFullYear();
-
-    const canEdit = isOwnUser;
-    const dayNames = ['L','M','M','G','V','S','D'];
+    const canEdit = isOwn;
 
     idxs.forEach(mi => {
         const m = months[mi];
+        const wrap = document.createElement('div');
+        wrap.className = 'mob-gcal-wrapper';
 
-        // wrapper
-        const wrapper = document.createElement('div');
-        wrapper.className = 'mob-gcal-wrapper';
-
-        // month title
         const title = document.createElement('div');
         title.className = 'mob-gcal-month-title';
         title.textContent = `${m.n} ${currentYear}`;
-        wrapper.appendChild(title);
+        wrap.appendChild(title);
 
-        // grid
         const grid = document.createElement('div');
         grid.className = 'mob-gcal-grid';
 
-        // header row: Lun Mon … Dom
-        const orderedDayNames = ['L','M','M','G','V','S','D'];
-        orderedDayNames.forEach(dn => {
+        // Header L M M G V S D
+        ['L','M','M','G','V','S','D'].forEach(dn => {
             const hc = document.createElement('div');
             hc.className = 'mob-gcal-header-cell';
             hc.textContent = dn;
             grid.appendChild(hc);
         });
 
-        // First day of month: getDay() returns 0=Sun..6=Sat; we want 0=Mon
-        const firstDow = new Date(currentYear, mi, 1).getDay(); // 0=Sun,1=Mon,...6=Sat
-        const offsetMon = (firstDow === 0) ? 6 : firstDow - 1; // Mon=0 … Sun=6
-
-        // Empty cells before day 1
-        for (let e = 0; e < offsetMon; e++) {
-            const empty = document.createElement('div');
-            empty.className = 'mob-gcal-day mob-gcal-empty';
-            grid.appendChild(empty);
+        // Offset: primo giorno del mese (lun=0)
+        const firstDow = new Date(currentYear, mi, 1).getDay();
+        const offset = firstDow === 0 ? 6 : firstDow - 1;
+        for(let e = 0; e < offset; e++){
+            const emp = document.createElement('div');
+            emp.className = 'mob-gcal-day mob-gcal-empty';
+            grid.appendChild(emp);
         }
 
-        // Day cells
-        for (let d = 1; d <= m.d; d++) {
-            const wd = new Date(currentYear, mi, d).getDay(); // 0=Sun,6=Sat
-            const key = `${u}-${currentYear}-${mi + 1}-${d}`;
-            const v = dataCache[key] || "";
-            const isHoliday = m.h.includes(d);
-            const isSunday  = wd === 0;
-            const isSaturday = wd === 6;
-            const isToday = (currentYear === todayYear && mi === todayMonth && d === todayDay);
+        for(let d = 1; d <= m.d; d++){
+            const wd       = new Date(currentYear, mi, d).getDay();
+            const key      = `${u}-${currentYear}-${mi+1}-${d}`;
+            const v        = dataCache[key] || "";
+            const isHol    = m.h.includes(d);
+            const isSun    = wd === 0;
+            const isSat    = wd === 6;
+            const isToday  = (currentYear===today.getFullYear() && mi===today.getMonth() && d===today.getDate());
+            const range    = getRangeLabel(key);
 
             const cell = document.createElement('div');
             cell.className = 'mob-gcal-day';
-            if (isSunday)  cell.classList.add('mob-gcal-sunday');
-            if (isHoliday) cell.classList.add('mob-gcal-holiday');
-            if (isToday)   cell.classList.add('mob-gcal-today');
-            if (canEdit && !isSunday && !isHoliday) cell.classList.add('mob-gcal-editable');
+            if(isSun)    cell.classList.add('mob-gcal-sunday');
+            if(isHol)    cell.classList.add('mob-gcal-holiday');
+            if(isToday)  cell.classList.add('mob-gcal-today');
+            if(canEdit && !isSun && !isHol) cell.classList.add('mob-gcal-editable');
 
             // Day number
             const numDiv = document.createElement('div');
             numDiv.className = 'mob-gcal-num';
-            if (isToday) {
-                numDiv.innerHTML = `<span class="mob-gcal-num-inner">${d}</span>`;
-            } else {
-                numDiv.textContent = d;
-            }
+            numDiv.innerHTML = isToday ? `<span class="mob-gcal-num-inner">${d}</span>` : String(d);
             cell.appendChild(numDiv);
 
-            // Holiday label
-            if (isHoliday) {
+            // Chip
+            if(isHol || isSun){
                 const chip = document.createElement('span');
                 chip.className = 'mob-gcal-chip holiday-lbl';
-                chip.textContent = 'F';
+                chip.textContent = isHol ? 'F' : 'D';
                 cell.appendChild(chip);
-            } else if (isSunday) {
-                const chip = document.createElement('span');
-                chip.className = 'mob-gcal-chip holiday-lbl';
-                chip.textContent = 'D';
-                cell.appendChild(chip);
-            } else if (isSaturday && !v) {
+            } else if(isSat && !v){
                 const chip = document.createElement('span');
                 chip.className = 'mob-gcal-chip holiday-lbl';
                 chip.textContent = 'S';
                 cell.appendChild(chip);
-            } else if (v) {
-                // Value chip
+            } else if(v){
                 const chip = document.createElement('span');
-                let chipClass = 'ferie-other';
-                let chipText = v;
-                if (v === '8')              { chipClass = 'ferie-full';  chipText = '8h'; }
-                else if (v === '4 M')       { chipClass = 'ferie-morn';  chipText = '4M'; }
-                else if (v === '4 P')       { chipClass = 'ferie-aftn';  chipText = '4P'; }
-                else if (v.endsWith(' M'))  { chipClass = 'ferie-morn';  chipText = v.replace(' M','')+'M'; }
-                else if (v.endsWith(' P'))  { chipClass = 'ferie-aftn';  chipText = v.replace(' P','')+'P'; }
-                else if (v.startsWith('R-')){ chipClass = 'ferie-other'; chipText = 'R'; }
-                chip.className = `mob-gcal-chip ${chipClass}`;
-                chip.textContent = chipText;
+                let cls = 'ferie-other';
+                if(v==='8')             cls = 'ferie-full';
+                else if(v.endsWith('M')) cls = 'ferie-morn';
+                else if(v.endsWith('P')) cls = 'ferie-aftn';
+                chip.className = `mob-gcal-chip ${cls}`;
+                chip.textContent = v.replace(' M','M').replace(' P','P');
                 cell.appendChild(chip);
+                // Range label sotto il chip
+                if(range){
+                    const rl = document.createElement('span');
+                    rl.className = 'mob-gcal-range-lbl';
+                    rl.textContent = range;
+                    cell.appendChild(rl);
+                }
             }
 
-            // Click handler (only own user, non-holiday, non-sunday)
-            if (canEdit && !isSunday && !isHoliday) {
-                cell.addEventListener('click', () => {
-                    openModal(cell, key, d, mi, isSaturday);
-                });
+            // Click: solo celle editabili della propria riga
+            if(canEdit && !isSun && !isHol){
+                cell.addEventListener('click', () => openModal(cell, key, d, mi, isSat));
             }
 
             grid.appendChild(cell);
         }
 
-        wrapper.appendChild(grid);
-        cont.appendChild(wrapper);
+        wrap.appendChild(grid);
+        cont.appendChild(wrap);
     });
 }
 
@@ -4023,29 +4071,32 @@ function closeModal(){
     activeCell=null;
 }
 
-async function applyValue(v){
+async function applyValue(v, rangeLabel){
     if(!activeCell || !activeCell.td || !activeCell.key) return;
 
     const td = activeCell.td;
     const key = activeCell.key;
     const previousValue = dataCache[key] || '';
+    const previousRange = getRangeLabel(key);
 
-    updateCellVisualState(td, v);
+    updateCellVisualState(td, v, rangeLabel || null);
 
     if(v){
         dataCache[key] = v;
     } else {
         delete dataCache[key];
+        delete dataCache[key + '__range'];
     }
 
     closeModal();
 
     try {
         await setFirebaseValue(key, v);
+        // Salva/cancella range
+        await setFirebaseRange(key, v ? (rangeLabel || null) : null);
         calculateStats();
         renderDashboard();
         renderChart();
-        // Su mobile il planner è un grid ricreato, va re-renderizzato
         if (window.innerWidth <= 768) renderPlanner();
     } catch(err) {
         console.error('Errore salvataggio Firebase:', err);
@@ -4054,13 +4105,46 @@ async function applyValue(v){
         } else {
             delete dataCache[key];
         }
-        updateCellVisualState(td, previousValue);
+        if(previousRange) dataCache[key + '__range'] = previousRange;
+        else delete dataCache[key + '__range'];
+        updateCellVisualState(td, previousValue, previousRange);
         calculateStats();
         renderDashboard();
         renderChart();
         if (window.innerWidth <= 768) renderPlanner();
         alert('Errore salvataggio. Riprova.');
     }
+}
+
+// Converte "HH:MM" in minuti totali
+function timeToMinutes(t){ const [h,m] = t.split(':').map(Number); return h*60+m; }
+
+// Calcola ore (con mezz'ore) da due stringhe "HH:MM"
+function calcHours(from, to){
+    const mins = timeToMinutes(to) - timeToMinutes(from);
+    if(mins <= 0) return null;
+    return mins / 60; // es. 1.5, 2, 0.5
+}
+
+function applyPermesso(turno){
+    const fromId = turno === 'M' ? 'permMornFrom' : 'permAftnFrom';
+    const toId   = turno === 'M' ? 'permMornTo'   : 'permAftnTo';
+    const from   = document.getElementById(fromId).value;
+    const to     = document.getElementById(toId).value;
+    const hours  = calcHours(from, to);
+
+    if(!hours || hours <= 0){
+        alert('Orario non valido: l\'ora di fine deve essere successiva all\'ora di inizio.');
+        return;
+    }
+
+    // Formato valore: "1.5 M" / "2 P" etc.
+    // Se ore intere, non mostrare decimale inutile
+    const hoursStr = Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+    const value = `${hoursStr} ${turno}`;
+    const rangeLabel = `${from}–${to}`;
+
+    applyValue(value, rangeLabel);
 }
 
 async function applyPresidio(){
@@ -4935,6 +5019,19 @@ window.initApp = async function() {
 };
 
 </script>
+
+<!-- ============ MOBILE BOTTOM ACTION BAR ============ -->
+<div class="mobile-bottom-bar" id="mobileBottomBar">
+    <button class="mob-nav-btn" onclick="prevMonth()" title="Mese precedente">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ INSERISCI FERIE</button>
+    <button class="mob-nav-btn" onclick="nextMonth()" title="Mese successivo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+    <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
+</div>
+
 </div>
 <!-- Fine APP CONTAINER -->
 
@@ -5476,7 +5573,7 @@ function applyUserPermissions() {
         }
     }
     
-    // ---- Reset mobile view user index to currentUser ----
+    // Reset mobile view user index to currentUser
     if (window.usersList && window.usersList.length > 0) {
         const idx = window.usersList.indexOf(currentUser);
         mobileViewUserIndex = idx >= 0 ? idx : 0;
@@ -5598,6 +5695,46 @@ window.addEventListener('scroll', function(){
 }, { passive: true });
 </script>
 
+
+<!-- RANGE TOOLTIP -->
+<div id="rangeTooltip" style="
+    position:fixed;
+    background:#172754;
+    color:white;
+    font-size:12px;
+    font-weight:600;
+    padding:5px 10px;
+    border-radius:6px;
+    pointer-events:none;
+    display:none;
+    z-index:9999;
+    white-space:nowrap;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+    letter-spacing:0.3px;
+"></div>
+
+<script>
+(function(){
+    const tip = document.getElementById('rangeTooltip');
+    document.addEventListener('mouseover', function(e){
+        const cell = e.target.closest('[data-range]');
+        if(cell && cell.dataset.range){
+            tip.textContent = cell.dataset.range;
+            tip.style.display = 'block';
+        }
+    });
+    document.addEventListener('mouseout', function(e){
+        const cell = e.target.closest('[data-range]');
+        if(cell) tip.style.display = 'none';
+    });
+    document.addEventListener('mousemove', function(e){
+        if(tip.style.display === 'block'){
+            tip.style.left = (e.clientX + 14) + 'px';
+            tip.style.top  = (e.clientY - 28) + 'px';
+        }
+    });
+})();
+</script>
 
 </body>
 </html>
