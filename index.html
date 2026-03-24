@@ -1271,30 +1271,6 @@ th.member-name,td.member-name{
     font-weight:600;
     font-size:14px; /* +1pt da 13px */
 }
-
-/* ── Sticky thead planner: segue lo sticky-nav ── */
-.planner thead th {
-    position: sticky;
-    top: var(--planner-thead-top, 0px);
-    z-index: 30;
-    background: var(--bg-secondary);
-}
-/* Le th nella weekday-row mantengono il loro colore */
-.planner .weekday-row th {
-    background: #EFF3FE;
-}
-[data-theme="dark"] .planner .weekday-row th {
-    background: #1e3a5f;
-}
-/* La seconda riga (numeri giorni) ha sfondo leggermente diverso */
-.planner thead tr:not(.weekday-row) th {
-    background: var(--bg-secondary);
-}
-/* La th member-name (Utente) ha z-index più alto per stare sopra tutto */
-.planner thead th.member-name {
-    z-index: 35;
-    background: var(--bg-secondary) !important;
-}
 .holiday-col{
     background:#fde6b3;
     cursor:not-allowed;
@@ -3492,7 +3468,6 @@ function render(){
     renderChart();
     calculateStats();
     renderFilters();
-    updatePlannerStickyTop();
 }
 
 function renderPlanner(){
@@ -5710,19 +5685,6 @@ function setViewMobile(v) {
 
 // Aggiorna UI mobile ad ogni resize
 window.addEventListener('resize', syncMobileUI);
-window.addEventListener('resize', updatePlannerStickyTop);
-
-/**
- * Legge l'altezza corrente dello sticky-nav e imposta
- * la CSS variable --planner-thead-top usata dai thead sticky.
- * Va chiamata dopo ogni render e al resize.
- */
-function updatePlannerStickyTop() {
-    const nav = document.getElementById('stickyNav');
-    if (!nav) return;
-    const h = nav.getBoundingClientRect().height;
-    document.documentElement.style.setProperty('--planner-thead-top', h + 'px');
-}
 
 // Ombra sullo sticky-nav: appare solo quando si è scrollato verso il basso
 window.addEventListener('scroll', function(){
