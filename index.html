@@ -833,6 +833,12 @@ body{
     transition:background 0.3s ease, color 0.3s ease;
 }
 
+  /* ── Zoom per schermi ~24" a 1920x1080: riduce tutto del 20% ── */
+@media screen and (max-width: 1920px) and (max-height: 1084px) {
+    #appContainer {
+        zoom: 0.80;
+    }
+}
 /* ================= LOGO HEADER ================= */
 .logo-box{
     width:100%;
