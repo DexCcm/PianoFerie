@@ -1269,7 +1269,28 @@ th.member-name,td.member-name{
     background:#EFF3FE;
     color:var(--title-blue);
     font-weight:600;
-    font-size:14px; /* +1pt da 13px */
+    font-size:14px;
+}
+
+/* ── Sticky thead: le due righe header (giorni testo + numeri) restano visibili ── */
+.planner thead {
+    position: sticky;
+    top: var(--planner-thead-top, 0px);
+    z-index: 40;
+}
+/* Assicura sfondo opaco su tutte le th dell'header */
+.planner thead th {
+    background: var(--bg-secondary);
+}
+.planner thead .weekday-row th {
+    background: #EFF3FE;
+}
+[data-theme="dark"] .planner thead .weekday-row th {
+    background: #1e3a5f;
+}
+/* member-name nell'header: z-index extra per stare sopra colonne orizzontali */
+.planner thead th.member-name {
+    z-index: 5;
 }
 .holiday-col{
     background:#fde6b3;
@@ -3468,6 +3489,7 @@ function render(){
     renderChart();
     calculateStats();
     renderFilters();
+    updatePlannerStickyTop();
 }
 
 function renderPlanner(){
@@ -5516,15 +5538,21 @@ function applyUserPermissions() {
         // Nessuna azione necessaria qui: syncMobileUI() gestisce la visibilità
 
         
-        // 3. Nascondi toggle grafico (solo ADMIN può espandere/comprimere)
+        // 3. Toggle grafico: abilitato anche per USER (di default espanso)
         const chartToggleHeader = document.getElementById('chartToggleHeader');
         if (chartToggleHeader) {
-            chartToggleHeader.onclick = null; // Rimuovi click handler
-            chartToggleHeader.style.cursor = 'default';
-            chartToggleHeader.title = '';
-            // Nascondi icona freccia
+            chartToggleHeader.onclick = toggleChart;
+            chartToggleHeader.style.cursor = 'pointer';
+            chartToggleHeader.title = 'Clicca per espandere/comprimere';
             const chartToggleIcon = chartToggleHeader.querySelector('.chart-toggle-icon');
-            if (chartToggleIcon) chartToggleIcon.style.display = 'none';
+            if (chartToggleIcon) chartToggleIcon.style.display = '';
+        }
+        // Assicura che il grafico sia espanso di default per USER
+        const chartContent = document.getElementById('chartContent');
+        if (chartContent) {
+            chartContent.classList.remove('collapsed');
+            const icon = document.querySelector('.chart-toggle-icon');
+            if (icon) icon.classList.add('expanded');
         }
         
         // 4. Nascondi bottone ordinamento dashboard (USER non ha dashboard)
@@ -5685,6 +5713,19 @@ function setViewMobile(v) {
 
 // Aggiorna UI mobile ad ogni resize
 window.addEventListener('resize', syncMobileUI);
+window.addEventListener('resize', updatePlannerStickyTop);
+
+/**
+ * Legge l'altezza corrente dello sticky-nav e imposta
+ * la CSS variable --planner-thead-top usata dai thead sticky.
+ * Va chiamata dopo ogni render e al resize.
+ */
+function updatePlannerStickyTop() {
+    const nav = document.getElementById('stickyNav');
+    if (!nav) return;
+    const h = nav.getBoundingClientRect().height;
+    document.documentElement.style.setProperty('--planner-thead-top', h + 'px');
+}
 
 // Ombra sullo sticky-nav: appare solo quando si è scrollato verso il basso
 window.addEventListener('scroll', function(){
