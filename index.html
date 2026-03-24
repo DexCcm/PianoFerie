@@ -1269,7 +1269,7 @@ th.member-name,td.member-name{
     background:#EFF3FE;
     color:var(--title-blue);
     font-weight:600;
-    font-size:14px; /* +1pt da 13px */
+    font-size:14px;
 }
 .holiday-col{
     background:#fde6b3;
@@ -5516,15 +5516,21 @@ function applyUserPermissions() {
         // Nessuna azione necessaria qui: syncMobileUI() gestisce la visibilità
 
         
-        // 3. Nascondi toggle grafico (solo ADMIN può espandere/comprimere)
+        // 3. Toggle grafico: abilitato anche per USER (di default espanso)
         const chartToggleHeader = document.getElementById('chartToggleHeader');
         if (chartToggleHeader) {
-            chartToggleHeader.onclick = null; // Rimuovi click handler
-            chartToggleHeader.style.cursor = 'default';
-            chartToggleHeader.title = '';
-            // Nascondi icona freccia
+            chartToggleHeader.onclick = toggleChart;
+            chartToggleHeader.style.cursor = 'pointer';
+            chartToggleHeader.title = 'Clicca per espandere/comprimere';
             const chartToggleIcon = chartToggleHeader.querySelector('.chart-toggle-icon');
-            if (chartToggleIcon) chartToggleIcon.style.display = 'none';
+            if (chartToggleIcon) chartToggleIcon.style.display = '';
+        }
+        // Assicura che il grafico sia espanso di default per USER
+        const chartContent = document.getElementById('chartContent');
+        if (chartContent) {
+            chartContent.classList.remove('collapsed');
+            const icon = document.querySelector('.chart-toggle-icon');
+            if (icon) icon.classList.add('expanded');
         }
         
         // 4. Nascondi bottone ordinamento dashboard (USER non ha dashboard)
