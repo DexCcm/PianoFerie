@@ -6102,8 +6102,8 @@ window.addEventListener('scroll', function(){
     function syncGhost() {
         rafPending = false;
 
-        // Solo desktop
-        if (window.innerWidth <= 768) { ghost.style.display = 'none'; return; }
+        // Solo desktop, solo su schermi > 1440px
+        if (window.innerWidth <= 1440) { ghost.style.display = 'none'; return; }
 
         var box = document.querySelector('.planner-box');
         if (!box) { ghost.style.display = 'none'; return; }
