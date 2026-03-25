@@ -5087,6 +5087,9 @@ window.initApp = async function() {
     <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
 </div>
 
+<!-- Ghost header fisso per planner (dentro appContainer per ereditare zoom) -->
+<div id="plannerGhostHeader"></div>
+
 </div>
 <!-- Fine APP CONTAINER -->
 
@@ -5793,13 +5796,18 @@ window.addEventListener('scroll', function(){
 })();
 </script>
 
-<!-- Ghost header fisso per planner -->
-<div id="plannerGhostHeader"></div>
-
 <script>
 (function(){
     var ghost = document.getElementById('plannerGhostHeader');
     var rafPending = false;
+
+    // Legge il fattore zoom corrente di #appContainer
+    function getZoom() {
+        var el = document.getElementById('appContainer');
+        if (!el) return 1;
+        var z = parseFloat(getComputedStyle(el).zoom);
+        return isNaN(z) ? 1 : z;
+    }
 
     function syncGhost() {
         rafPending = false;
@@ -5807,7 +5815,6 @@ window.addEventListener('scroll', function(){
         // Solo desktop
         if (window.innerWidth <= 768) { ghost.style.display = 'none'; return; }
 
-        // Cerca il primo planner-box visibile
         var box = document.querySelector('.planner-box');
         if (!box) { ghost.style.display = 'none'; return; }
 
@@ -5817,36 +5824,37 @@ window.addEventListener('scroll', function(){
         var navEl = document.getElementById('stickyNav');
         var navBottom = navEl ? navEl.getBoundingClientRect().bottom : 0;
 
-        var boxRect = box.getBoundingClientRect();
+        var boxRect   = box.getBoundingClientRect();
         var theadRect = thead.getBoundingClientRect();
 
-        // Il thead è già visibile sopra il nav → nascondi ghost
+        // thead ancora visibile → nascondi ghost
         if (theadRect.top >= navBottom) { ghost.style.display = 'none'; return; }
-        // Il box è completamente uscito dallo schermo → nascondi ghost
+        // box uscito dallo schermo → nascondi ghost
         if (boxRect.bottom <= navBottom + 10) { ghost.style.display = 'none'; return; }
 
-        // Deve apparire: aggiorna dimensioni e contenuto
-        // Clona il thead solo se cambia il numero di colonne (cambio mese/view)
+        var zoom = getZoom();
+
+        // Reclona se cambia numero colonne
         var existingCols = ghost.querySelectorAll('th').length;
-        var realCols = thead.querySelectorAll('th').length;
-        if (existingCols !== realCols) {
-            rebuildGhost(thead, box);
-        }
+        var realCols     = thead.querySelectorAll('th').length;
+        if (existingCols !== realCols) rebuildGhost(thead);
 
-        // Allinea larghezze colonne con la tabella reale
-        syncColumnWidths(thead, box);
+        // Allinea larghezze — getBoundingClientRect è in viewport px (pre-zoom),
+        // ma il ghost è dentro il container zoomato: dividiamo per zoom
+        syncColumnWidths(thead, zoom);
 
-        // Posiziona il ghost
-        ghost.style.top  = navBottom + 'px';
-        ghost.style.left = boxRect.left + 'px';
-        ghost.style.width = boxRect.width + 'px';
+        // Posiziona: top/left in viewport px, poi annulliamo lo zoom del parent
+        // usando transform invece di top/left assoluti
+        ghost.style.top   = (navBottom / zoom) + 'px';
+        ghost.style.left  = (boxRect.left / zoom) + 'px';
+        ghost.style.width = (boxRect.width / zoom) + 'px';
         ghost.style.display = 'block';
 
         // Sync scroll orizzontale
         ghost.scrollLeft = box.scrollLeft;
     }
 
-    function rebuildGhost(thead, box) {
+    function rebuildGhost(thead) {
         var tbl = document.createElement('table');
         tbl.className = 'planner';
         tbl.style.borderCollapse = 'collapse';
@@ -5855,24 +5863,19 @@ window.addEventListener('scroll', function(){
         ghost.appendChild(tbl);
     }
 
-    function syncColumnWidths(thead, box) {
-        var realThs = thead.querySelectorAll('tr:first-child th');
-        var ghostThs = ghost.querySelectorAll('tr:first-child th');
-        for (var i = 0; i < realThs.length && i < ghostThs.length; i++) {
-            var w = realThs[i].getBoundingClientRect().width;
-            ghostThs[i].style.width = w + 'px';
-            ghostThs[i].style.minWidth = w + 'px';
-            ghostThs[i].style.maxWidth = w + 'px';
-        }
-        // Seconda riga
-        var realThs2 = thead.querySelectorAll('tr:nth-child(2) th');
-        var ghostThs2 = ghost.querySelectorAll('tr:nth-child(2) th');
-        for (var j = 0; j < realThs2.length && j < ghostThs2.length; j++) {
-            var w2 = realThs2[j].getBoundingClientRect().width;
-            ghostThs2[j].style.width = w2 + 'px';
-            ghostThs2[j].style.minWidth = w2 + 'px';
-            ghostThs2[j].style.maxWidth = w2 + 'px';
-        }
+    function syncColumnWidths(thead, zoom) {
+        var rows = [
+            { real: thead.querySelectorAll('tr:first-child th'),    ghost: ghost.querySelectorAll('tr:first-child th') },
+            { real: thead.querySelectorAll('tr:nth-child(2) th'),   ghost: ghost.querySelectorAll('tr:nth-child(2) th') }
+        ];
+        rows.forEach(function(r) {
+            for (var i = 0; i < r.real.length && i < r.ghost.length; i++) {
+                var w = r.real[i].getBoundingClientRect().width / zoom;
+                r.ghost[i].style.width    = w + 'px';
+                r.ghost[i].style.minWidth = w + 'px';
+                r.ghost[i].style.maxWidth = w + 'px';
+            }
+        });
     }
 
     function scheduleSync() {
@@ -5882,16 +5885,12 @@ window.addEventListener('scroll', function(){
     window.addEventListener('scroll', scheduleSync, { passive: true });
     window.addEventListener('resize', scheduleSync, { passive: true });
 
-    // Sync anche quando il planner-box scrolla orizzontalmente
     document.addEventListener('scroll', function(e) {
         if (e.target && e.target.classList && e.target.classList.contains('planner-box')) {
-            if (ghost.style.display !== 'none') {
-                ghost.scrollLeft = e.target.scrollLeft;
-            }
+            if (ghost.style.display !== 'none') ghost.scrollLeft = e.target.scrollLeft;
         }
     }, true);
 
-    // Espone per chiamata dopo render
     window.syncPlannerGhost = scheduleSync;
 })();
 </script>
