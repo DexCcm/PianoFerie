@@ -1322,7 +1322,7 @@ th.member-name,td.member-name{
     font-size:14px;
 }
 
-/* ── Ghost header fisso per il planner ── */
+/* ── Ghost header fisso per il planner — DISABILITATO ──
 #plannerGhostHeader {
     position: fixed;
     z-index: 180;
@@ -1359,6 +1359,7 @@ th.member-name,td.member-name{
     font-weight: 700;
     color: var(--text-secondary);
 }
+── */
 .holiday-col{
     background:#fde6b3;
     cursor:not-allowed;
@@ -3654,7 +3655,7 @@ function render(){
     renderChart();
     calculateStats();
     renderFilters();
-    if (window.syncPlannerGhost) requestAnimationFrame(window.syncPlannerGhost);
+    // if (window.syncPlannerGhost) requestAnimationFrame(window.syncPlannerGhost); // DISABILITATO
 }
 
 function renderPlanner(){
@@ -5377,8 +5378,9 @@ window.initApp = async function() {
     <button class="mob-extras-btn" onclick="toggleMobExtras()" title="Altro">⋯</button>
 </div>
 
-<!-- Ghost header fisso per planner (dentro appContainer per ereditare zoom) -->
+<!-- Ghost header fisso per planner — DISABILITATO
 <div id="plannerGhostHeader"></div>
+-->
 
 </div>
 <!-- Fine APP CONTAINER -->
@@ -6086,6 +6088,7 @@ window.addEventListener('scroll', function(){
 })();
 </script>
 
+<!-- Ghost header JS — DISABILITATO
 <script>
 (function(){
     var ghost = document.getElementById('plannerGhostHeader');
@@ -6184,6 +6187,7 @@ window.addEventListener('scroll', function(){
     window.syncPlannerGhost = scheduleSync;
 })();
 </script>
+-->
 
 </body>
 </html>
