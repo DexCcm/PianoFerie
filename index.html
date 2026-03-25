@@ -840,6 +840,13 @@ body{
     }
 }
 
+/* ── Zoom per notebook/MacBook 13-15": riduce tutto del 30% ── */
+@media screen and (max-width: 1440px) and (max-height: 900px) {
+    #appContainer {
+        zoom: 0.70;
+    }
+}
+
 /* ================= LOGO HEADER ================= */
 .logo-box{
     width:100%;
@@ -2480,7 +2487,7 @@ body.user-mode #dashboardTable th{
 
 <div class="sticky-nav" id="stickyNav">
 
-<h1>Piano Ferie <span id="yearLabel">2026</span></h1>
+<h1>Planner Annuale <span id="yearLabel">2026</span></h1>
 
 <div class="year-nav-bar" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
     <button class="nav-btn" onclick="changeYear(-1)">
