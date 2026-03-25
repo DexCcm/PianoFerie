@@ -1310,6 +1310,14 @@ table.planner thead th {
     font-size: 12px;
 }
 
+/* Larghezza fissa colonne giorno: impedisce allargamento post-riduzione padding */
+table.planner th:not(.member-name),
+table.planner td:not(.member-name) {
+    min-width: 32px;
+    max-width: 38px;
+    width: 34px;
+}
+
 th.member-name,td.member-name{
     position:sticky;
     left:0;
