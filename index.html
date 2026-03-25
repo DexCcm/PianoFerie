@@ -836,14 +836,14 @@ body{
 /* ── Zoom per schermi ~24" a 1920x1080: riduce tutto del 20% ── */
 @media screen and (max-width: 1920px) and (max-height: 1084px) {
     #appContainer {
-        zoom: 0.75;
+        zoom: 0.80;
     }
 }
 
 /* ── Zoom per notebook/MacBook 13-15": riduce tutto del 30% ── */
 @media screen and (max-width: 1440px) and (max-height: 900px) {
     #appContainer {
-        zoom: 0.60;
+        zoom: 0.70;
     }
 }
 
@@ -1335,6 +1335,33 @@ td.editable:hover{background:var(--hover-bg)}
 td.full-day{background:#ffd6d6;color:#b30000;font-weight:600}
 td.morning-partial{background:#d6ecff;color:#0b5ed7;font-weight:600}
 td.afternoon-partial{background:#e6dbff;color:#4b2dbf;font-weight:600}
+
+/* Cella con permessi multipli */
+td.multi-permit {
+    background: linear-gradient(135deg, #d6ecff 50%, #e6dbff 50%);
+    font-size: 9px !important;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 1px !important;
+    vertical-align: middle;
+}
+td.multi-permit .mp-line {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+}
+td.multi-permit .mp-line.mp-M { color: #0b5ed7; }
+td.multi-permit .mp-line.mp-P { color: #4b2dbf; }
+
+/* Santo Patrono Marnate */
+td.santo-patrono {
+    background: #fdf3e3;
+    color: #92400e;
+    font-weight: 700;
+    cursor: pointer;
+}
+td.santo-patrono:hover { background: #fde8c8; }
 
 [data-theme="dark"] td.full-day{background:#7f1d1d;color:#fca5a5}
 [data-theme="dark"] td.morning-partial{background:#1e3a8a;color:#93c5fd}
@@ -2622,6 +2649,12 @@ body.user-mode #dashboardTable th{
     <div class="modal-title" id="modalTitle">Imposta ferie</div>
     <div class="modal-subtitle" id="modalDate"></div>
 
+    <!-- Permessi già inseriti sulla cella -->
+    <div id="existingPermitsBox" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border-color);">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Permessi già inseriti</div>
+        <div id="existingPermitsList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+
     <div id="normalContent">
         <button class="btn-full-day" onclick="applyValue('8')">Giornata intera · 8 ore</button>
 
@@ -3005,8 +3038,8 @@ function sanitizeYearData(raw){
 function updateCellVisualState(td, value, rangeLabel){
     if(!td) return;
     td.textContent = "";
-    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell');
-    // Rimuovi attributi range precedenti
+    td.innerHTML = "";
+    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell','multi-permit','santo-patrono');
     td.removeAttribute('data-range');
 
     const isSaturday = td.dataset && td.dataset.saturday === 'true';
@@ -3026,14 +3059,31 @@ function updateCellVisualState(td, value, rangeLabel){
     }
 
     if(!value) return;
-    // Display compatto: "1.5 M" → "1.5M", "2 P" → "2P"
-    const displayVal = value.replace(' M','M').replace(' P','P');
-    td.textContent = displayVal;
-    if(value === '8') td.classList.add('full-day');
-    else if(String(value).endsWith('M')) td.classList.add('morning-partial');
-    else if(String(value).endsWith('P')) td.classList.add('afternoon-partial');
-    // Tooltip range
-    if(rangeLabel) td.setAttribute('data-range', rangeLabel);
+
+    const permits = parsePermits(value);
+    const ranges  = parseRanges(rangeLabel || getRangeLabel(td.dataset && td.dataset.key || ''));
+
+    if(permits.length > 1){
+        // Multi-permit display
+        td.classList.add('multi-permit');
+        permits.forEach((p, i) => {
+            const line = document.createElement('span');
+            line.className = 'mp-line mp-' + (String(p).endsWith('M') ? 'M' : 'P');
+            line.textContent = p.replace(' M','M').replace(' P','P');
+            td.appendChild(line);
+        });
+        const allRanges = ranges.join(' · ');
+        if(allRanges) td.setAttribute('data-range', allRanges);
+    } else {
+        const v = permits[0] || value;
+        const displayVal = String(v).replace(' M','M').replace(' P','P');
+        td.textContent = displayVal;
+        if(v === '8') td.classList.add('full-day');
+        else if(String(v).endsWith('M')) td.classList.add('morning-partial');
+        else if(String(v).endsWith('P')) td.classList.add('afternoon-partial');
+        const rl = ranges[0] || rangeLabel;
+        if(rl) td.setAttribute('data-range', rl);
+    }
 }
 
 async function ensureYearRootExists(year){
@@ -3052,8 +3102,13 @@ let lastClickedCell = null;
 
 const parseHours=v=>{
     if(!v) return 0;
-    if(v.startsWith && v.startsWith('R-')) return 0; // Presidio non conta come ferie
-    if(v==="8") return 8;
+    if(v.startsWith && v.startsWith('R-')) return 0;
+    if(v==='8') return 8;
+    // Array JSON di permessi multipli
+    try {
+        const arr = JSON.parse(v);
+        if(Array.isArray(arr)) return arr.reduce((sum, p) => sum + (parseFloat(p) || 0), 0);
+    } catch(e) {}
     return parseFloat(v) || 0;
 };
 const parseDays=v=>parseHours(v)/8;
@@ -3194,6 +3249,44 @@ async function setFirebaseRange(key, rangeLabel) {
 
 function getRangeLabel(key) {
     return dataCache[key + '__range'] || null;
+}
+
+// ---- Permessi multipli ----
+// Il valore in cache può essere:
+//   stringa singola: "1 M"  (legacy / giornata intera)
+//   JSON array:      '["1 M","2 P"]'
+// Il range in cache può essere:
+//   stringa singola: "09:00–10:00"
+//   JSON array:      '["09:00–10:00","16:00–18:00"]'
+
+function parsePermits(rawVal) {
+    if (!rawVal) return [];
+    try {
+        const parsed = JSON.parse(rawVal);
+        if (Array.isArray(parsed)) return parsed;
+    } catch(e) {}
+    return [rawVal]; // stringa singola → array di uno
+}
+
+function parseRanges(rawRange) {
+    if (!rawRange) return [];
+    try {
+        const parsed = JSON.parse(rawRange);
+        if (Array.isArray(parsed)) return parsed;
+    } catch(e) {}
+    return rawRange ? [rawRange] : [];
+}
+
+function isMultiPermit(rawVal) {
+    const permits = parsePermits(rawVal);
+    return permits.length > 1;
+}
+
+function isPermesso(v) {
+    // È un permesso orario (M o P), non giornata intera né presidio
+    if (!v) return false;
+    const s = String(v);
+    return (s.endsWith('M') || s.endsWith('P')) && s !== '8';
 }
 
 function setupRealtimeListener() {
@@ -3608,19 +3701,64 @@ function renderPlanner(){
                 const holidayName = getHolidayName(currentYear, mi, d);
                 html+=`<td class="holiday-col" title="${holidayName}">F</td>`;
             }
+                // Santo Patrono Marnate: 13 Gennaio, non bloccato
+                else if(mi === 0 && d === 13){
+                    const spTitle = "Santo Patrono Marnate – Sant'Ilario di Poitiers";
+                    let cls = "editable santo-patrono";
+                    let spDisplay = 'SP';
+                    let spRangeAttr = '';
+                    if(v){
+                        const permits = parsePermits(v);
+                        if(permits.length > 1){
+                            cls += " multi-permit";
+                            const ranges = parseRanges(getRangeLabel(key));
+                            const allRanges = ranges.join(' · ');
+                            spRangeAttr = ` data-range="${spTitle}${allRanges ? ' | ' + allRanges : ''}"`;
+                            spDisplay = permits.map(p=>p.replace(' M','M').replace(' P','P')).join('<br>');
+                        } else {
+                            spDisplay = v.replace(' M','M').replace(' P','P') || 'SP';
+                            const rl = getRangeLabel(key);
+                            spRangeAttr = ` data-range="${spTitle}${rl ? ' | ' + rl : ''}"`;
+                        }
+                    } else {
+                        spRangeAttr = ` data-range="${spTitle}"`;
+                    }
+                    if(canEditRow){
+                        html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}" data-saturday="false"${spRangeAttr}>${spDisplay}</td>`;
+                    } else {
+                        html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="false"${spRangeAttr}>${spDisplay}</td>`;
+                    }
+                }
                 // Altri giorni: ferie normali
                 else{
                     let cls="editable";
-                    if(v==="8")cls+=" full-day";
-                    if(v.endsWith("M"))cls+=" morning-partial";
-                    if(v.endsWith("P"))cls+=" afternoon-partial";
-                    const displayV = v ? v.replace(' M','M').replace(' P','P') : '';
-                    const rangeAttr = v && getRangeLabel(key) ? ` data-range="${getRangeLabel(key)}"` : '';
+                    const permits = parsePermits(v);
+                    const rawRange = getRangeLabel(key);
+
+                    if(v==="8") cls+=" full-day";
+                    else if(permits.length > 1){
+                        cls += " multi-permit";
+                    } else if(v.endsWith("M")) cls+=" morning-partial";
+                    else if(v.endsWith("P")) cls+=" afternoon-partial";
+
+                    let displayV = '';
+                    let rangeAttr = '';
+
+                    if(permits.length > 1){
+                        const ranges = parseRanges(rawRange);
+                        displayV = permits.map(p=>p.replace(' M','M').replace(' P','P')).join('<br>');
+                        const allRanges = ranges.join(' · ');
+                        if(allRanges) rangeAttr = ` data-range="${allRanges}"`;
+                    } else {
+                        displayV = v ? v.replace(' M','M').replace(' P','P') : '';
+                        if(v && rawRange) rangeAttr = ` data-range="${rawRange}"`;
+                    }
+
                     if(canEditRow){
-                    html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}" data-saturday="false"${rangeAttr}>${displayV}</td>`;
-                } else {
-                    html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="false"${rangeAttr}>${displayV}</td>`;
-                }
+                        html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},false)" data-key="${key}" data-saturday="false"${rangeAttr}>${displayV}</td>`;
+                    } else {
+                        html+=`<td class="${cls.replace('editable','').trim()} user-not-editable-cell" data-key="${key}" data-saturday="false"${rangeAttr}>${displayV}</td>`;
+                    }
                 }
             }
             html+=`</tr>`;
@@ -3729,6 +3867,8 @@ function renderMobileCalendar(){
             cell.appendChild(numDiv);
 
             // Chip
+            const isSP = (mi === 0 && d === 13); // Santo Patrono Marnate
+
             if(isHol || isSun){
                 const chip = document.createElement('span');
                 chip.className = 'mob-gcal-chip holiday-lbl';
@@ -3739,22 +3879,55 @@ function renderMobileCalendar(){
                 chip.className = 'mob-gcal-chip holiday-lbl';
                 chip.textContent = 'S';
                 cell.appendChild(chip);
-            } else if(v){
+            } else if(isSP && !v){
+                // Santo Patrono senza valore: mostra solo SP
                 const chip = document.createElement('span');
-                let cls = 'ferie-other';
-                if(v==='8')             cls = 'ferie-full';
-                else if(v.endsWith('M')) cls = 'ferie-morn';
-                else if(v.endsWith('P')) cls = 'ferie-aftn';
-                chip.className = `mob-gcal-chip ${cls}`;
-                chip.textContent = v.replace(' M','M').replace(' P','P');
+                chip.className = 'mob-gcal-chip';
+                chip.style.cssText = 'background:#fdf3e3;color:#92400e;font-weight:700;';
+                chip.textContent = 'SP';
                 cell.appendChild(chip);
-                // Range label sotto il chip
-                if(range){
-                    const rl = document.createElement('span');
-                    rl.className = 'mob-gcal-range-lbl';
-                    rl.textContent = range;
-                    cell.appendChild(rl);
+            } else if(v){
+                const permits = parsePermits(v);
+                const ranges  = parseRanges(range);
+                if(permits.length > 1){
+                    // Multi-permit: chip separati
+                    permits.forEach((p, i) => {
+                        const chip = document.createElement('span');
+                        const cls = String(p).endsWith('M') ? 'ferie-morn' : 'ferie-aftn';
+                        chip.className = `mob-gcal-chip ${cls}`;
+                        chip.style.fontSize = '8px';
+                        chip.textContent = p.replace(' M','M').replace(' P','P');
+                        cell.appendChild(chip);
+                        if(ranges[i]){
+                            const rl = document.createElement('span');
+                            rl.className = 'mob-gcal-range-lbl';
+                            rl.textContent = ranges[i];
+                            cell.appendChild(rl);
+                        }
+                    });
+                } else {
+                    const chip = document.createElement('span');
+                    let cls = 'ferie-other';
+                    if(v==='8')              cls = 'ferie-full';
+                    else if(v.endsWith('M')) cls = 'ferie-morn';
+                    else if(v.endsWith('P')) cls = 'ferie-aftn';
+                    if(isSP) chip.style.cssText = 'background:#fdf3e3;color:#92400e;border:1px solid #f59e0b;';
+                    chip.className = `mob-gcal-chip ${cls}`;
+                    chip.textContent = v.replace(' M','M').replace(' P','P');
+                    cell.appendChild(chip);
+                    if(ranges[0]){
+                        const rl = document.createElement('span');
+                        rl.className = 'mob-gcal-range-lbl';
+                        rl.textContent = ranges[0];
+                        cell.appendChild(rl);
+                    }
                 }
+            } else if(isSP){
+                const chip = document.createElement('span');
+                chip.className = 'mob-gcal-chip';
+                chip.style.cssText = 'background:#fdf3e3;color:#92400e;font-weight:700;';
+                chip.textContent = 'SP';
+                cell.appendChild(chip);
             }
 
             // Click: solo celle editabili della propria riga
@@ -4110,18 +4283,70 @@ function openModal(td,key,day,month,isSaturday){
         document.getElementById("normalContent").style.display = "block";
         document.getElementById("presidioContent").style.display = "none";
     }
-   
-    /* Mostra sempre il contenuto ferie normali (presidio disabilitato) --COMMENTATO
-    document.getElementById("modalTitle").textContent = "Imposta ferie";
-    document.getElementById("normalContent").style.display = "block";
-    document.getElementById("presidioContent").style.display = "none";
-    */
+
+    // Mostra permessi già inseriti sulla cella
+    const existingBox  = document.getElementById('existingPermitsBox');
+    const existingList = document.getElementById('existingPermitsList');
+    const rawVal   = dataCache[key] || '';
+    const rawRange = dataCache[key + '__range'] || '';
+    const permits  = parsePermits(rawVal);
+    const ranges   = parseRanges(rawRange);
+
+    if(!isSaturday && permits.length > 0 && rawVal !== '8'){
+        existingList.innerHTML = '';
+        permits.forEach((p, i) => {
+            const tag = document.createElement('div');
+            tag.style.cssText = `
+                display:inline-flex;align-items:center;gap:6px;
+                padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;
+                background:${String(p).endsWith('M') ? '#d6ecff' : '#e6dbff'};
+                color:${String(p).endsWith('M') ? '#0b5ed7' : '#4b2dbf'};
+            `;
+            const label = p.replace(' M','M').replace(' P','P') + (ranges[i] ? ` (${ranges[i]})` : '');
+            tag.innerHTML = `${label} <span onclick="removePermit(${i})" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.7;" title="Rimuovi">×</span>`;
+            existingList.appendChild(tag);
+        });
+        existingBox.style.display = 'block';
+    } else {
+        existingBox.style.display = 'none';
+    }
+
     document.getElementById("modal").style.display="flex";
 }
 
 function closeModal(){
     document.getElementById("modal").style.display="none";
     activeCell=null;
+}
+
+async function removePermit(index){
+    if(!activeCell || !activeCell.td || !activeCell.key) return;
+    const key     = activeCell.key;
+    const rawVal  = dataCache[key] || '';
+    const rawRange= dataCache[key + '__range'] || '';
+    const permits = parsePermits(rawVal);
+    const ranges  = parseRanges(rawRange);
+
+    permits.splice(index, 1);
+    ranges.splice(index, 1);
+
+    let finalValue = permits.length === 0 ? '' : permits.length === 1 ? permits[0] : JSON.stringify(permits);
+    let finalRange = ranges.length === 0  ? '' : ranges.length  === 1 ? ranges[0]  : JSON.stringify(ranges);
+
+    // Aggiorna cache
+    if(finalValue) dataCache[key] = finalValue; else delete dataCache[key];
+    if(finalRange) dataCache[key+'__range'] = finalRange; else delete dataCache[key+'__range'];
+
+    closeModal();
+
+    try {
+        await setFirebaseValue(key, finalValue);
+        await setFirebaseRange(key, finalValue ? finalRange : null);
+        renderPlanner(); calculateStats(); renderDashboard(); renderChart();
+    } catch(err){
+        console.error('Errore rimozione permesso:', err);
+        alert('Errore salvataggio. Riprova.');
+    }
 }
 
 async function applyValue(v, rangeLabel){
@@ -4180,6 +4405,8 @@ function calcHours(from, to){
 }
 
 function applyPermesso(turno){
+    if(!activeCell || !activeCell.td || !activeCell.key) return;
+
     const fromId = turno === 'M' ? 'permMornFrom' : 'permAftnFrom';
     const toId   = turno === 'M' ? 'permMornTo'   : 'permAftnTo';
     const from   = document.getElementById(fromId).value;
@@ -4191,13 +4418,35 @@ function applyPermesso(turno){
         return;
     }
 
-    // Formato valore: "1.5 M" / "2 P" etc.
-    // Se ore intere, non mostrare decimale inutile
-    const hoursStr = Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
-    const value = `${hoursStr} ${turno}`;
-    const rangeLabel = `${from}–${to}`;
+    const hoursStr   = Number.isInteger(hours) ? String(hours) : hours.toFixed(1);
+    const newValue   = `${hoursStr} ${turno}`;
+    const newRange   = `${from}–${to}`;
+    const key        = activeCell.key;
+    const existingRaw = dataCache[key] || '';
+    const existingRangeRaw = dataCache[key + '__range'] || '';
 
-    applyValue(value, rangeLabel);
+    // Se esiste già un permesso orario, aggiungi; se è giornata intera o presidio, sostituisci
+    let finalValue, finalRange;
+    if(existingRaw && isPermesso(existingRaw) || (existingRaw && existingRaw.startsWith('['))){
+        const permits = parsePermits(existingRaw);
+        const ranges  = parseRanges(existingRangeRaw);
+        // Evita duplicati stesso turno
+        const alreadyHasTurno = permits.some(p => String(p).endsWith(turno));
+        if(alreadyHasTurno){
+            alert(`Esiste già un permesso ${turno === 'M' ? 'mattina' : 'pomeriggio'} per questo giorno.\nRimuovi prima il valore esistente.`);
+            return;
+        }
+        permits.push(newValue);
+        ranges.push(newRange);
+        finalValue = JSON.stringify(permits);
+        finalRange = JSON.stringify(ranges);
+    } else {
+        // Prima voce o sostituzione
+        finalValue = newValue;
+        finalRange = newRange;
+    }
+
+    applyValue(finalValue, finalRange);
 }
 
 async function applyPresidio(){
