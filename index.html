@@ -2598,26 +2598,27 @@ body.user-mode #dashboardTable th{
 
 </div><!-- /sticky-nav -->
 
-<div id="actionButtonsRow" style="display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;">
+<!-- Riga bottoni + hint: ferie a sinistra, hint al centro, release a destra -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin:0 0 20px;gap:12px;">
 
     <!-- Bottone Inserisci Ferie Animato -->
-    <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
+    <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()" style="flex-shrink:0;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
         <span class="btn-text">INSERISCI FERIE</span>
     </button>
 
+    <div class="shift-hint" style="color:#6b7280;font-size:13px;text-align:center;flex:1;">
+        💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
+    </div>
+
     <!-- Bottone Release Allianz (visibile solo se allianz=true) -->
-    <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
+    <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;flex-shrink:0;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
         <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
     </button>
 
-</div>
-
-<div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:-10px 0 20px 0;">
-    💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
 </div>
 
 <div class="page-wrapper" id="pageWrapper">
@@ -4359,55 +4360,30 @@ async function clearMultipleValues(){
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
-        // Separa celle con release da celle normali
-        const releaseCells  = selectedCells.filter(c => (dataCache[c.key] || '').startsWith('R-'));
-        const normalCells   = selectedCells.filter(c => !(dataCache[c.key] || '').startsWith('R-'));
+        const releaseCells = selectedCells.filter(c => (dataCache[c.key] || '').startsWith('R-'));
+        const normalCells  = selectedCells.filter(c => !(dataCache[c.key] || '').startsWith('R-'));
 
-        // Aggiorna visuale e cache per tutte
-        for(let cell of selectedCells){
+        // Celle normali: cancellazione diretta
+        for(const cell of normalCells){
             updateCellVisualState(cell.td, '');
             delete dataCache[cell.key];
         }
-
-        // Rimozione celle normali
-        const normalPromises = normalCells.map(cell =>
+        await Promise.all(normalCells.map(cell =>
             setFirebaseValue(cell.key, '').catch(err => console.error(`Errore ${cell.key}:`, err))
-        );
-        await Promise.all(normalPromises);
+        ));
 
-        // Rimozione release: propaga a tutti areaPapyrus + allianz
-        if(releaseCells.length > 0){
-            const targetUsers = new Set(
-                Object.entries(usersConfig)
-                    .filter(([, cfg]) => cfg.areaPapyrus === true || cfg.allianz === true)
-                    .map(([name]) => name)
-            );
-            targetUsers.add(currentUser);
-
-            for(const cell of releaseCells){
-                const parts = cell.key.split('-');
-                const year  = parts[parts.length - 3];
-                const month = parts[parts.length - 2];
-                const day   = parts[parts.length - 1];
-
-                for(const u of targetUsers){
-                    const k = `${u}-${year}-${month}-${day}`;
-                    try {
-                        const dbRef = window.firebaseDB.ref(`ferie${year}/${k}`);
-                        await window.firebaseDB.remove(dbRef);
-                        delete dataCache[k];
-                    } catch(e){ console.error(`Errore rimozione release ${k}:`, e); }
-                }
-                await ensureYearRootExists(parseInt(year));
-            }
+        // Celle release: propaga tramite removeReleaseByKey
+        for(const cell of releaseCells){
+            await removeReleaseByKey(cell.key, cell.td);
         }
 
         closeSelectionActionsPopup();
         clearSelection();
-        calculateStats();
-        renderDashboard();
-        renderChart();
-        if(window.innerWidth <= 768) renderPlanner();
+        if(releaseCells.length === 0){
+            // solo celle normali: render manuale
+            calculateStats(); renderDashboard(); renderChart();
+        }
+        // Se ci sono release, removeReleaseByKey ha già fatto render()
 
         document.getElementById('loadingOverlay').style.display = 'none';
     } catch(error){
@@ -4538,34 +4514,35 @@ function closeRemoveReleaseModal(){
 }
 
 async function confirmRemoveRelease(){
+    // Salva prima di chiudere (closeRemoveReleaseModal azzera i vars)
+    const isBulk = _removeReleaseBulk;
+    const savedKey = _removeReleaseKey;
+    const savedTd  = _removeReleaseTd;
+
     closeRemoveReleaseModal();
-    if(_removeReleaseBulk){
+
+    if(isBulk){
         await clearMultipleValues();
         return;
     }
-    if(!_removeReleaseKey) return;
-    activeCell = { td: _removeReleaseTd, key: _removeReleaseKey };
-    await removeRelease();
+    if(!savedKey) return;
+    await removeReleaseByKey(savedKey, savedTd);
 }
 
-async function removeRelease(){
-    if(!activeCell || !activeCell.td || !activeCell.key) return;
-    const key = activeCell.key;
+// Rimuove una release dalla chiave specificata per tutti gli utenti target
+async function removeReleaseByKey(key, td){
     const parts = key.split('-');
     const year  = parts[parts.length - 3];
     const month = parts[parts.length - 2];
     const day   = parts[parts.length - 1];
 
-    // Trova tutti gli utenti areaPapyrus=true + l'utente corrente (che ha allianz=true)
     const targetUsers = new Set(
         Object.entries(usersConfig)
             .filter(([, cfg]) => cfg.areaPapyrus === true || cfg.allianz === true)
             .map(([name]) => name)
     );
-    // Includi sempre l'utente corrente
     targetUsers.add(currentUser);
 
-    closeModal();
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
@@ -4573,13 +4550,12 @@ async function removeRelease(){
             const k = `${u}-${year}-${month}-${day}`;
             const existing = dataCache[k] || '';
             if(existing.startsWith('R-')){
-                // Usa remove diretto su Firebase per garantire cancellazione
-                const dbRef = window.firebaseDB.ref(`ferie${year}/${k}`);
+                const dbRef = window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`);
                 await window.firebaseDB.remove(dbRef);
                 delete dataCache[k];
-                await ensureYearRootExists(parseInt(year));
             }
         }
+        await ensureYearRootExists(parseInt(year));
         render();
         document.getElementById('loadingOverlay').style.display = 'none';
     } catch(err){
@@ -4587,6 +4563,15 @@ async function removeRelease(){
         document.getElementById('loadingOverlay').style.display = 'none';
         alert('Errore durante la rimozione. Riprova.');
     }
+}
+
+// Wrapper per compatibilità con handleRemoveValue (usa activeCell)
+async function removeRelease(){
+    if(!activeCell || !activeCell.key) return;
+    const key = activeCell.key;
+    const td  = activeCell.td;
+    activeCell = null; // azzera subito per evitare doppi click
+    await removeReleaseByKey(key, td);
 }
 
 async function removePermit(index){
@@ -5688,7 +5673,8 @@ window.initApp = async function() {
     <button class="mob-nav-btn" onclick="prevMonth()" title="Mese precedente">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
-    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ INSERISCI FERIE</button>
+    <button class="mob-insert-btn" id="mobInsertBtn" onclick="openRangeModal()">+ FERIE</button>
+    <button class="mob-insert-btn" id="mobAllianzBtn" onclick="openAllianzModal()" style="display:none;background:#1e3a8a;">+ RELEASE</button>
     <button class="mob-nav-btn" onclick="nextMonth()" title="Mese successivo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
@@ -6306,6 +6292,13 @@ function syncMobileUI() {
     if (allianzBtn && currentUser) {
         const hasAllianz = usersConfig[currentUser] && usersConfig[currentUser].allianz;
         allianzBtn.style.display = (!isMobile && hasAllianz) ? '' : 'none';
+    }
+
+    // Bottone Allianz mobile
+    const mobAllianzBtn = document.getElementById('mobAllianzBtn');
+    if (mobAllianzBtn && currentUser) {
+        const hasAllianz = usersConfig[currentUser] && usersConfig[currentUser].allianz;
+        mobAllianzBtn.style.display = (isMobile && hasAllianz) ? '' : 'none';
     }
 
     // Su mobile, collassa il grafico di default alla prima visualizzazione
