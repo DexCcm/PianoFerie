@@ -1828,6 +1828,10 @@ td.santo-patrono:hover { background: #fde8c8; }
     font-weight: 700 !important;
     font-size: 11px !important;
 }
+[data-theme="dark"] .presidio-cell {
+    background: #1d4ed8 !important;
+    color: #ffffff !important;
+}
 
 
 /* ================= SELEZIONE MULTIPLA ================= */
@@ -2594,6 +2598,8 @@ body.user-mode #dashboardTable th{
 
 </div><!-- /sticky-nav -->
 
+<div id="actionButtonsRow" style="display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;">
+
 <!-- Bottone Inserisci Ferie Animato -->
 <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
     <div class="btn-stars-container">
@@ -2617,6 +2623,8 @@ body.user-mode #dashboardTable th{
     </div>
     <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
 </button>
+
+</div>
 
 <div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:-10px 0 20px 0;">
     💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
@@ -2813,7 +2821,7 @@ body.user-mode #dashboardTable th{
     <div id="presidioContent" style="display:none;"></div>
 
     <div class="modal-footer">
-        <div class="remove-link" onclick="applyValue('')">Rimuovi valore</div>
+        <div class="remove-link" onclick="handleRemoveValue()">Rimuovi valore</div>
         <button class="cancel-btn" onclick="closeModal()">Annulla</button>
     </div>
   </div>
@@ -4378,16 +4386,37 @@ function openModal(td,key,day,month,isSaturday){
         existingList.innerHTML = '';
         permits.forEach((p, i) => {
             const tag = document.createElement('div');
-            tag.style.cssText = `
-                display:inline-flex;align-items:center;gap:6px;
-                padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;
-                background:${String(p).endsWith('M') ? '#d6ecff' : '#e6dbff'};
-                color:${String(p).endsWith('M') ? '#0b5ed7' : '#4b2dbf'};
-            `;
-            const label = p.replace(' M','M').replace(' P','P') + (ranges[i] ? ` (${ranges[i]})` : '');
-            tag.innerHTML = `${label} <span onclick="removePermit(${i})" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.7;" title="Rimuovi">×</span>`;
+            const isRelease = String(p).startsWith('R-');
+            if(isRelease){
+                // Stile presidio-cell: blu scuro / bianco
+                tag.style.cssText = `
+                    display:inline-flex;align-items:center;gap:6px;
+                    padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;
+                    background:#1e3a8a;color:#ffffff;
+                `;
+                const releaseNum = String(p).substring(2);
+                tag.innerHTML = `Release inserita: ${releaseNum} <span onclick="removeRelease()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
+            } else {
+                tag.style.cssText = `
+                    display:inline-flex;align-items:center;gap:6px;
+                    padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;
+                    background:${String(p).endsWith('M') ? '#d6ecff' : '#e6dbff'};
+                    color:${String(p).endsWith('M') ? '#0b5ed7' : '#4b2dbf'};
+                `;
+                const label = p.replace(' M','M').replace(' P','P') + (ranges[i] ? ` (${ranges[i]})` : '');
+                tag.innerHTML = `${label} <span onclick="removePermit(${i})" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.7;" title="Rimuovi">×</span>`;
+            }
             existingList.appendChild(tag);
         });
+        existingBox.style.display = 'block';
+    } else if(!isSaturday && rawVal && rawVal.startsWith('R-')){
+        // Release singola (non in array)
+        existingList.innerHTML = '';
+        const tag = document.createElement('div');
+        tag.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;background:#1e3a8a;color:#ffffff;`;
+        const releaseNum = rawVal.substring(2);
+        tag.innerHTML = `Release inserita: ${releaseNum} <span onclick="removeRelease()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
+        existingList.appendChild(tag);
         existingBox.style.display = 'block';
     } else {
         existingBox.style.display = 'none';
@@ -4399,6 +4428,52 @@ function openModal(td,key,day,month,isSaturday){
 function closeModal(){
     document.getElementById("modal").style.display="none";
     activeCell=null;
+}
+
+function handleRemoveValue(){
+    if(!activeCell || !activeCell.key) return;
+    const v = dataCache[activeCell.key] || '';
+    if(v.startsWith('R-')){
+        removeRelease();
+    } else {
+        applyValue('');
+    }
+}
+
+async function removeRelease(){
+    if(!activeCell || !activeCell.td || !activeCell.key) return;
+    const key = activeCell.key;
+    // Estrai la data dalla chiave: "Utente-anno-mese-giorno"
+    const parts = key.split('-');
+    // parts: [Nome, anno, mese, giorno]
+    const year  = parts[parts.length - 3];
+    const month = parts[parts.length - 2];
+    const day   = parts[parts.length - 1];
+
+    // Trova tutti gli utenti areaPapyrus=true
+    const papyrusUsers = Object.entries(usersConfig)
+        .filter(([, cfg]) => cfg.areaPapyrus === true)
+        .map(([name]) => name);
+
+    closeModal();
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    try {
+        for(const u of papyrusUsers){
+            const k = `${u}-${year}-${month}-${day}`;
+            const existing = dataCache[k] || '';
+            if(existing.startsWith('R-')){
+                await setFirebaseValue(k, '');
+                delete dataCache[k];
+            }
+        }
+        render();
+        document.getElementById('loadingOverlay').style.display = 'none';
+    } catch(err){
+        console.error('Errore rimozione release:', err);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante la rimozione. Riprova.');
+    }
 }
 
 async function removePermit(index){
@@ -4737,14 +4812,17 @@ async function applyRangeAllianz(){
 
     const value = 'R-' + releaseNum;
 
-    // Raccogli tutte le date del range (inclusi weekend — la release può cadere anche nel weekend)
+    // Raccogli tutte le date del range — escludi sabati
     const datesToInsert = [];
     let cur = new Date(startDate);
     while(cur <= endDate){
-        const y  = cur.getFullYear();
-        const mi = cur.getMonth();
-        const d  = cur.getDate();
-        datesToInsert.push({ year: y, month: mi, day: d });
+        const y   = cur.getFullYear();
+        const mi  = cur.getMonth();
+        const d   = cur.getDate();
+        const dow = cur.getDay(); // 0=Dom, 6=Sab
+        if(dow !== 6){ // escludi sabato
+            datesToInsert.push({ year: y, month: mi, day: d });
+        }
         cur.setDate(cur.getDate() + 1);
     }
 
