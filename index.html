@@ -836,14 +836,14 @@ body{
 /* ── Zoom per schermi ~24" a 1920x1080: riduce tutto del 20% ── */
 @media screen and (max-width: 1920px) and (max-height: 1084px) {
     #appContainer {
-        zoom: 0.75;
+        zoom: 0.80;
     }
 }
 
 /* ── Zoom per notebook/MacBook 13-15": riduce tutto del 30% ── */
 @media screen and (max-width: 1440px) and (max-height: 900px) {
     #appContainer {
-        zoom: 0.50;
+        zoom: 0.70;
     }
 }
 
@@ -2377,13 +2377,22 @@ body.user-mode #dashboardTable th{
     bottom: 50px;
     left: 20px;
     z-index: 997;
-    width: 140px;  /* Aumentato da 100px */
-    height: 140px; /* Aumentato da 100px */
+    width: 140px;
+    height: 140px;
     opacity: 0.7;
     transition: all 0.3s ease;
     cursor: pointer;
     border-radius: 50%;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    /* Neutralizza zoom CSS del parent container */
+    zoom: 1;
+}
+
+/* Nasconde la mascotte quando la finestra è ridotta (zoom browser alto o schermo piccolo) */
+@media screen and (max-width: 1100px), screen and (max-height: 700px) {
+    .floating-gatta {
+        display: none !important;
+    }
 }
 
 .floating-gatta:hover {
@@ -2403,19 +2412,6 @@ body.user-mode #dashboardTable th{
 @media (max-width: 768px) {
     .floating-gatta {
         display: none !important;
-        width: 90px;   /* Aumentato da 70px */
-        height: 90px;  /* Aumentato da 70px */
-        bottom: 40px;
-        left: 15px;
-    }
-}
-
-@media (max-width: 480px) {
-    .floating-gatta {
-        width: 60px;   /* Aumentato da 50px */
-        height: 60px;  /* Aumentato da 50px */
-        bottom: 35px;
-        left: 10px;
     }
 }
 
@@ -2608,6 +2604,18 @@ body.user-mode #dashboardTable th{
         <div class="glow-circle"></div>
     </div>
     <span class="btn-text">INSERISCI FERIE</span>
+</button>
+
+<!-- Bottone Release Allianz (visibile solo se allianz=true) -->
+<button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
+    <div class="btn-stars-container">
+        <div class="btn-stars"></div>
+    </div>
+    <div class="btn-glow">
+        <div class="glow-circle"></div>
+        <div class="glow-circle"></div>
+    </div>
+    <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
 </button>
 
 <div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:-10px 0 20px 0;">
@@ -2838,6 +2846,38 @@ body.user-mode #dashboardTable th{
 
     <div class="modal-footer">
         <button class="cancel-btn" onclick="closeRangeModal()">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE RELEASE ALLIANZ -->
+<div id="allianzModal" class="modal-overlay" onclick="closeAllianzModal()">
+  <div class="modal-panel" onclick="event.stopPropagation()">
+    <div class="modal-title">🔧 Inserisci Release Allianz</div>
+    <div class="modal-subtitle">Il valore verrà applicato a tutti gli utenti Area Papyrus</div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Numero Release</div>
+        <input type="number" id="allianzReleaseNum" placeholder="N. release"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
+    </div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Data Inizio</div>
+        <input type="date" id="allianzStart" onchange="syncAllianzEnd()"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
+    </div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Data Fine</div>
+        <input type="date" id="allianzEnd"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
+    </div>
+
+    <button class="btn-full-day" onclick="applyRangeAllianz()" style="margin-top:12px;">Applica Release</button>
+
+    <div class="modal-footer">
+        <button class="cancel-btn" onclick="closeAllianzModal()">Annulla</button>
     </div>
   </div>
 </div>
@@ -4650,6 +4690,90 @@ async function applyRangeHolidays(){
     }
 }
 
+// ================= RELEASE ALLIANZ MODAL =================
+
+function openAllianzModal(){
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('allianzStart').value = today;
+    document.getElementById('allianzEnd').value   = today;
+    document.getElementById('allianzReleaseNum').value = '';
+    document.getElementById('allianzModal').style.display = 'flex';
+}
+
+function syncAllianzEnd(){
+    const s = document.getElementById('allianzStart').value;
+    const e = document.getElementById('allianzEnd');
+    if(!e.value || e.value < s) e.value = s;
+    e.min = s;
+}
+
+function closeAllianzModal(){
+    document.getElementById('allianzModal').style.display = 'none';
+}
+
+async function applyRangeAllianz(){
+    const releaseNum = document.getElementById('allianzReleaseNum').value.trim();
+    if(!releaseNum){
+        alert('Inserisci un numero di release.');
+        return;
+    }
+
+    const startDate = new Date(document.getElementById('allianzStart').value);
+    const endDate   = new Date(document.getElementById('allianzEnd').value);
+    if(startDate > endDate){
+        alert('La data di inizio deve essere precedente alla data di fine.');
+        return;
+    }
+
+    // Raccogli utenti AreaPapyrus=true
+    const papyrusUsers = Object.entries(usersConfig)
+        .filter(([, cfg]) => cfg.areaPapyrus === true)
+        .map(([name]) => name);
+
+    if(papyrusUsers.length === 0){
+        alert('Nessun utente con AreaPapyrus abilitato trovato.');
+        return;
+    }
+
+    const value = 'R-' + releaseNum;
+
+    // Raccogli tutte le date del range (inclusi weekend — la release può cadere anche nel weekend)
+    const datesToInsert = [];
+    let cur = new Date(startDate);
+    while(cur <= endDate){
+        const y  = cur.getFullYear();
+        const mi = cur.getMonth();
+        const d  = cur.getDate();
+        datesToInsert.push({ year: y, month: mi, day: d });
+        cur.setDate(cur.getDate() + 1);
+    }
+
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    closeAllianzModal();
+
+    try {
+        for(const item of datesToInsert){
+            for(const u of papyrusUsers){
+                const key = `${u}-${item.year}-${item.month + 1}-${item.day}`;
+                // Se esiste già un valore ferie/permesso, non sovrascrivere — affianca
+                // (per ora sovrascriviamo solo se la cella è vuota o già presidio)
+                const existing = dataCache[key] || '';
+                if(!existing || existing.startsWith('R-')){
+                    await setFirebaseValue(key, value);
+                    dataCache[key] = value;
+                }
+            }
+        }
+        render();
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert(`Release ${releaseNum} inserita per ${papyrusUsers.length} utenti Area Papyrus (${datesToInsert.length} giorni).`);
+    } catch(err){
+        console.error('Errore inserimento release Allianz:', err);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante l\'inserimento. Riprova.');
+    }
+}
+
 // ================= STAT CARD CLICK HANDLER =================
 
 function onStatCardClick(type) {
@@ -5272,7 +5396,9 @@ async function loadUsersFromFirebase() {
                 email: userData.email || '',
                 role: userData.role || 'user',
                 mascotte:      userData.mascotte      || null,
-                mascotteTitle: userData.mascotteTitle || null
+                mascotteTitle: userData.mascotteTitle || null,
+                allianz:       userData.allianz       === true || userData.allianz === 'true',
+                areaPapyrus:   userData.areaPapyrus   === true || userData.areaPapyrus === 'true'
             };
             users.push(cognome);
         }
@@ -5982,6 +6108,13 @@ function syncMobileUI() {
     const desktopBtn = document.getElementById('insertHolidaysBtn');
     if (desktopBtn && currentUser) {
         desktopBtn.style.display = isMobile ? 'none' : '';
+    }
+
+    // Bottone "Inserisci Release Allianz": visibile solo se allianz=true e desktop
+    const allianzBtn = document.getElementById('insertAllianzBtn');
+    if (allianzBtn && currentUser) {
+        const hasAllianz = usersConfig[currentUser] && usersConfig[currentUser].allianz;
+        allianzBtn.style.display = (!isMobile && hasAllianz) ? '' : 'none';
     }
 
     // Su mobile, collassa il grafico di default alla prima visualizzazione
