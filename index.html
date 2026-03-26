@@ -2598,31 +2598,25 @@ body.user-mode #dashboardTable th{
 
 </div><!-- /sticky-nav -->
 
-<div id="actionButtonsRow" style="display:flex;justify-content:center;align-items:center;gap:16px;flex-wrap:wrap;">
+<div id="actionButtonsRow" style="display:flex;justify-content:center;align-items:center;gap:0;flex-wrap:wrap;">
 
-<!-- Bottone Inserisci Ferie Animato -->
-<button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
-    <div class="btn-stars-container">
-        <div class="btn-stars"></div>
+    <div style="flex:1;display:flex;justify-content:flex-end;padding-right:8px;">
+        <!-- Bottone Inserisci Ferie Animato -->
+        <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
+            <div class="btn-stars-container"><div class="btn-stars"></div></div>
+            <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
+            <span class="btn-text">INSERISCI FERIE</span>
+        </button>
     </div>
-    <div class="btn-glow">
-        <div class="glow-circle"></div>
-        <div class="glow-circle"></div>
-    </div>
-    <span class="btn-text">INSERISCI FERIE</span>
-</button>
 
-<!-- Bottone Release Allianz (visibile solo se allianz=true) -->
-<button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
-    <div class="btn-stars-container">
-        <div class="btn-stars"></div>
+    <div style="flex:1;display:flex;justify-content:flex-start;padding-left:8px;">
+        <!-- Bottone Release Allianz (visibile solo se allianz=true) -->
+        <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
+            <div class="btn-stars-container"><div class="btn-stars"></div></div>
+            <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
+            <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
+        </button>
     </div>
-    <div class="btn-glow">
-        <div class="glow-circle"></div>
-        <div class="glow-circle"></div>
-    </div>
-    <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
-</button>
 
 </div>
 
@@ -4125,8 +4119,15 @@ function handleCellClick(event, td, key, day, month, isSaturday){
         return;
     }
 
-    // Sabato: non aprire modale (la release Allianz si inserisce solo dal bottone dedicato)
-    if(isSaturday) return;
+    // Sabato: cliccabile solo se contiene una release (per permettere la rimozione)
+    if(isSaturday){
+        const v = dataCache[key] || '';
+        if(!v.startsWith('R-')) return;
+        // Ha una release: apri modale per rimozione
+        activeCell = { td, key };
+        handleRemoveValue();
+        return;
+    }
 
     // Se SHIFT è premuto, gestisci selezione multipla
     if(event.shiftKey){
@@ -4336,25 +4337,55 @@ async function clearMultipleValues(){
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
+        // Separa celle con release da celle normali
+        const releaseCells  = selectedCells.filter(c => (dataCache[c.key] || '').startsWith('R-'));
+        const normalCells   = selectedCells.filter(c => !(dataCache[c.key] || '').startsWith('R-'));
+
+        // Aggiorna visuale e cache per tutte
         for(let cell of selectedCells){
             updateCellVisualState(cell.td, '');
             delete dataCache[cell.key];
         }
 
-        const promises = selectedCells.map(cell => 
-            setFirebaseValue(cell.key, '').catch(err => {
-                console.error(`Errore ${cell.key}:`, err);
-                return null;
-            })
+        // Rimozione celle normali
+        const normalPromises = normalCells.map(cell =>
+            setFirebaseValue(cell.key, '').catch(err => console.error(`Errore ${cell.key}:`, err))
         );
+        await Promise.all(normalPromises);
 
-        await Promise.all(promises);
+        // Rimozione release: propaga a tutti areaPapyrus + allianz
+        if(releaseCells.length > 0){
+            const targetUsers = new Set(
+                Object.entries(usersConfig)
+                    .filter(([, cfg]) => cfg.areaPapyrus === true || cfg.allianz === true)
+                    .map(([name]) => name)
+            );
+            targetUsers.add(currentUser);
+
+            for(const cell of releaseCells){
+                const parts = cell.key.split('-');
+                const year  = parts[parts.length - 3];
+                const month = parts[parts.length - 2];
+                const day   = parts[parts.length - 1];
+
+                for(const u of targetUsers){
+                    const k = `${u}-${year}-${month}-${day}`;
+                    try {
+                        const dbRef = window.firebaseDB.ref(`ferie${year}/${k}`);
+                        await window.firebaseDB.remove(dbRef);
+                        delete dataCache[k];
+                    } catch(e){ console.error(`Errore rimozione release ${k}:`, e); }
+                }
+                await ensureYearRootExists(parseInt(year));
+            }
+        }
 
         closeSelectionActionsPopup();
         clearSelection();
         calculateStats();
         renderDashboard();
         renderChart();
+        if(window.innerWidth <= 768) renderPlanner();
 
         document.getElementById('loadingOverlay').style.display = 'none';
     } catch(error){
