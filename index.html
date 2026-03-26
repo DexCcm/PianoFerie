@@ -2709,7 +2709,7 @@ body.user-mode #dashboardTable th{
 
     <!-- Permessi già inseriti sulla cella -->
     <div id="existingPermitsBox" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--bg-primary);border-radius:8px;border:1px solid var(--border-color);">
-        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Permessi già inseriti</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Inseriti:</div>
         <div id="existingPermitsList" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
 
@@ -3826,6 +3826,7 @@ function renderPlanner(){
                     const rawRange = getRangeLabel(key);
 
                     if(v==="8") cls+=" full-day";
+                    else if(v && v.startsWith('R-')) cls+=" presidio-cell";
                     else if(permits.length > 1){
                         cls += " multi-permit";
                     } else if(v.endsWith("M")) cls+=" morning-partial";
@@ -3834,7 +3835,10 @@ function renderPlanner(){
                     let displayV = '';
                     let rangeAttr = '';
 
-                    if(permits.length > 1){
+                    if(v && v.startsWith('R-')){
+                        displayV = v.substring(2); // mostra solo il numero
+                        rangeAttr = ` title="Release Allianz: ${v.substring(2)}"`;
+                    } else if(permits.length > 1){
                         const ranges = parseRanges(rawRange);
                         displayV = permits.map(p=>p.replace(' M','M').replace(' P','P')).join('<br>');
                         const allRanges = ranges.join(' · ');
@@ -4118,8 +4122,11 @@ function handleCellClick(event, td, key, day, month, isSaturday){
     // USER e ADMIN possono modificare solo la PROPRIA riga
     const keyUser = (key || '').split('-')[0];
     if(keyUser && keyUser !== currentUser){
-        return; // Blocca se non è la propria riga
+        return;
     }
+
+    // Sabato: non aprire modale (la release Allianz si inserisce solo dal bottone dedicato)
+    if(isSaturday) return;
 
     // Se SHIFT è premuto, gestisci selezione multipla
     if(event.shiftKey){
@@ -4443,28 +4450,33 @@ function handleRemoveValue(){
 async function removeRelease(){
     if(!activeCell || !activeCell.td || !activeCell.key) return;
     const key = activeCell.key;
-    // Estrai la data dalla chiave: "Utente-anno-mese-giorno"
     const parts = key.split('-');
-    // parts: [Nome, anno, mese, giorno]
     const year  = parts[parts.length - 3];
     const month = parts[parts.length - 2];
     const day   = parts[parts.length - 1];
 
-    // Trova tutti gli utenti areaPapyrus=true
-    const papyrusUsers = Object.entries(usersConfig)
-        .filter(([, cfg]) => cfg.areaPapyrus === true)
-        .map(([name]) => name);
+    // Trova tutti gli utenti areaPapyrus=true + l'utente corrente (che ha allianz=true)
+    const targetUsers = new Set(
+        Object.entries(usersConfig)
+            .filter(([, cfg]) => cfg.areaPapyrus === true || cfg.allianz === true)
+            .map(([name]) => name)
+    );
+    // Includi sempre l'utente corrente
+    targetUsers.add(currentUser);
 
     closeModal();
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
-        for(const u of papyrusUsers){
+        for(const u of targetUsers){
             const k = `${u}-${year}-${month}-${day}`;
             const existing = dataCache[k] || '';
             if(existing.startsWith('R-')){
-                await setFirebaseValue(k, '');
+                // Usa remove diretto su Firebase per garantire cancellazione
+                const dbRef = window.firebaseDB.ref(`ferie${year}/${k}`);
+                await window.firebaseDB.remove(dbRef);
                 delete dataCache[k];
+                await ensureYearRootExists(parseInt(year));
             }
         }
         render();
@@ -4812,15 +4824,15 @@ async function applyRangeAllianz(){
 
     const value = 'R-' + releaseNum;
 
-    // Raccogli tutte le date del range — escludi sabati
+    // Raccogli tutte le date del range — includi sabato, escludi solo domenica
     const datesToInsert = [];
     let cur = new Date(startDate);
     while(cur <= endDate){
         const y   = cur.getFullYear();
         const mi  = cur.getMonth();
         const d   = cur.getDate();
-        const dow = cur.getDay(); // 0=Dom, 6=Sab
-        if(dow !== 6){ // escludi sabato
+        const dow = cur.getDay();
+        if(dow !== 0){ // escludi solo domenica
             datesToInsert.push({ year: y, month: mi, day: d });
         }
         cur.setDate(cur.getDate() + 1);
