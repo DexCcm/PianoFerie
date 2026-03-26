@@ -2598,27 +2598,22 @@ body.user-mode #dashboardTable th{
 
 </div><!-- /sticky-nav -->
 
-<!-- Riga bottoni + hint: centrata, bottoni affiancati alla hint -->
-<div style="display:flex;align-items:center;justify-content:center;margin:0 0 20px;gap:16px;flex-wrap:wrap;">
-
-    <!-- Bottone Inserisci Ferie Animato -->
-    <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()" style="flex-shrink:0;">
+<!-- Riga bottoni centrati (stile anno prec/succ) -->
+<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin:0 0 8px;flex-wrap:wrap;">
+    <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
         <span class="btn-text">INSERISCI FERIE</span>
     </button>
-
-    <div class="shift-hint" style="color:#6b7280;font-size:13px;text-align:center;">
-        💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
-    </div>
-
-    <!-- Bottone Release Allianz (visibile solo se allianz=true) -->
-    <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;flex-shrink:0;">
+    <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
         <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
     </button>
+</div>
 
+<div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:0 0 20px;">
+    💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
 </div>
 
 <div class="page-wrapper" id="pageWrapper">
