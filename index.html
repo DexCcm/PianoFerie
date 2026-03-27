@@ -2556,20 +2556,13 @@ body.user-mode #dashboardTable th{
 
 <div class="sticky-nav" id="stickyNav">
 
-<h1>Planner Annuale <span id="yearLabel">2026</span></h1>
-
-<div class="year-nav-bar" style="display:flex;justify-content:center;gap:10px;margin-bottom:16px;">
+<div class="calendar-header" style="margin-bottom:8px;">
     <button class="nav-btn" onclick="changeYear(-1)">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        <span class="year-nav-label">Anno Prec.</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
     </button>
+    <h1 style="margin:0;font-size:22px;">Planner Annuale <span id="yearLabel">2026</span></h1>
     <button class="nav-btn" onclick="changeYear(1)">
-        <span class="year-nav-label">Anno Succ.</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </button>
 </div>
 
@@ -2596,10 +2589,8 @@ body.user-mode #dashboardTable th{
     <button class="view-btn" onclick="exportToExcel()">⬇︎ Excel</button>
 </div>
 
-</div><!-- /sticky-nav -->
-
-<!-- Riga bottoni centrati (stile anno prec/succ) -->
-<div style="display:flex;justify-content:center;align-items:center;gap:10px;margin:0 0 8px;flex-wrap:wrap;">
+<!-- Bottoni azione dentro sticky-nav -->
+<div style="display:flex;justify-content:center;align-items:center;gap:10px;padding:6px 0 2px;flex-wrap:wrap;">
     <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
@@ -2612,7 +2603,9 @@ body.user-mode #dashboardTable th{
     </button>
 </div>
 
-<div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:0 0 20px;">
+</div><!-- /sticky-nav -->
+
+<div class="shift-hint" style="text-align:center;color:#6b7280;font-size:13px;margin:4px 0 16px;">
     💡 <strong>Suggerimento:</strong> <kbd>SHIFT + Click</kbd> su 2 celle per selezione multipla, poi click su una cella evidenziata per le azioni
 </div>
 
