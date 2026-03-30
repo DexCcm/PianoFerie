@@ -1724,7 +1724,7 @@ td.santo-patrono:hover { background: #fde8c8; }
 
 .btn-text {
     z-index: 2;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 2px;
     color: #ffffff;
@@ -2544,7 +2544,7 @@ body.user-mode #dashboardTable th{
 <div id="appContainer" style="display:none;">
 
 <!-- Version Badge -->
-<div class="version-badge">v1.0.0</div>
+<div class="version-badge">v1.1.0</div>
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay">
@@ -4235,7 +4235,7 @@ function selectRange(startCell, endCell){
 function showSelectionActionsPopup(){
     // Se TUTTE le celle selezionate sono release → modale dedicata rimozione
     const allRelease = selectedCells.length > 0 &&
-        selectedCells.every(c => (dataCache[c.key] || '').startsWith('R-'));
+        selectedCells.every(c => { const v = dataCache[c.key] || ''; return v.startsWith('R-') || v === 'PP'; });
     if(allRelease){
         openRemoveReleaseBulkModal();
         return;
@@ -4467,6 +4467,14 @@ function openModal(td,key,day,month,isSaturday){
         tag.innerHTML = `Release inserita: ${releaseNum} <span onclick="removeRelease()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
         existingList.appendChild(tag);
         existingBox.style.display = 'block';
+    } else if(!isSaturday && rawVal === 'PP'){
+        // PreProd
+        existingList.innerHTML = '';
+        const tag = document.createElement('div');
+        tag.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;background:#1e3a8a;color:#ffffff;`;
+        tag.innerHTML = `Pre-Produzione inserita <span onclick="handleRemoveValue()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
+        existingList.appendChild(tag);
+        existingBox.style.display = 'block';
     } else {
         existingBox.style.display = 'none';
     }
@@ -4482,7 +4490,7 @@ function closeModal(){
 function handleRemoveValue(){
     if(!activeCell || !activeCell.key) return;
     const v = dataCache[activeCell.key] || '';
-    if(v.startsWith('R-')){
+    if(v.startsWith('R-') || v === 'PP'){
         openRemoveReleaseModal(activeCell.key, activeCell.td);
     } else {
         applyValue('');
@@ -5485,30 +5493,29 @@ function exportToPDF(){
         monthsToExport = [0,1,2,3,4,5,6,7,8,9,10,11];
     }
     
-    // Costruisci HTML - SOLO CALENDARI
-    let html = '<div style="font-family:Arial,sans-serif;padding:20px;background:white;">';
+    // Costruisci HTML - SOLO CALENDARI (landscape A4: 277mm utili × 190mm utili dopo margini)
+    let html = '<div style="font-family:Arial,sans-serif;background:white;width:100%;">';
     
-    // Titolo
-    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Planner Ferie ' + currentYear + '</h1>';
+    // Titolo compatto
+    html += '<h1 style="text-align:center;color:#172754;font-size:14px;margin:0 0 6px;">Piano Ferie ' + currentYear + '</h1>';
     
-    // Calendari (3 mesi per foglio per visualizzazioni da trimestre in su)
+    // Calendari — 3 mesi per pagina
     monthsToExport.forEach((mi, idx) => {
         const m = months[mi];
         
-        // ✅ Page break ogni 3 mesi (per trimestre+)
-        // idx = 3, 6, 9 → nuovo foglio
+        // Page break ogni 3 mesi
         if(idx > 0 && idx % 3 === 0){
-            html += '<div style="page-break-before:always;"></div>';
+            html += '<div style="page-break-before:always;height:6px;"></div>';
         }
         
-        html += '<div style="margin-bottom:8px;page-break-inside:avoid;">';
-        html += '<div style="background:#eff3ff;color:#172754;font-size:10px;font-weight:bold;text-align:center;padding:3px;border-bottom:2px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
-        html += '<table style="width:100%;border-collapse:collapse;font-size:6px;table-layout:fixed;">';
-        html += '<thead><tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ddd;padding:1px 2px;font-weight:bold;font-size:6px;width:40px;line-height:1;">Utente</th>';
+        html += '<div style="margin-bottom:4px;page-break-inside:avoid;">';
+        html += '<div style="background:#eff3ff;color:#172754;font-size:8px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:5px;table-layout:fixed;">';
+        html += '<thead><tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0 1px;font-weight:bold;font-size:5px;width:32px;line-height:1.1;">Utente</th>';
         
         for(let d = 1; d <= m.d; d++){
             const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
-            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ddd;padding:0px;font-weight:bold;font-size:5px;line-height:1.2;">' + dayName + '</th>';
+            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0px;font-weight:bold;font-size:4px;line-height:1.1;">' + dayName + '</th>';
         }
         html += '</tr><tr>';
         
@@ -5516,14 +5523,14 @@ function exportToPDF(){
             const wd = new Date(currentYear, mi, d).getDay();
             const isHoliday = wd === 0 || wd === 6 || m.h.includes(d);
             const bgColor = isHoliday ? '#fef3c7' : '#dbeafe';
-            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ddd;padding:0px;font-weight:bold;font-size:6px;line-height:1.2;">' + d + '</th>';
+            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ccc;padding:0px;font-weight:bold;font-size:5px;line-height:1.1;">' + d + '</th>';
         }
         html += '</tr></thead><tbody>';
         
         users.forEach(u => {
             // Abbrevia nomi lunghi
             const userName = u.length > 8 ? u.substring(0,7) : u;
-            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ddd;padding:0px 2px;font-size:6px;line-height:1.2;">' + userName + '</td>';
+            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ccc;padding:0 1px;font-size:5px;line-height:1.1;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
             for(let d = 1; d <= m.d; d++){
                 const wd = new Date(currentYear, mi, d).getDay();
                 // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
@@ -5531,7 +5538,7 @@ function exportToPDF(){
                 const v = dataCache[key] || "";
                 
             if(wd === 0){
-                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:5px;color:#78350f;font-weight:bold;line-height:1.2;">D</td>';
+                html += '<td style="background:#fef3c7;border:1px solid #ccc;padding:0px;text-align:center;font-size:4px;color:#78350f;font-weight:bold;line-height:1.1;">D</td>';
             }
             else if(wd === 6){
                 let displayValue = v || "S";
@@ -5540,14 +5547,14 @@ function exportToPDF(){
 
                 if(v.startsWith && v.startsWith('R-')){
                     displayValue = v.substring(2);
-                    bgColor = '#2F5BD4';
+                    bgColor = '#1e3a8a';
                     textColor = '#ffffff';
                 }
 
-                html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:6px;line-height:1.2;">' + displayValue + '</td>';
+                html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ccc;padding:0px;text-align:center;font-weight:bold;font-size:5px;line-height:1.1;">' + displayValue + '</td>';
             }
             else if(m.h.includes(d)){
-                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:5px;color:#78350f;font-weight:bold;line-height:1.2;">F</td>';
+                html += '<td style="background:#fef3c7;border:1px solid #ccc;padding:0px;text-align:center;font-size:4px;color:#78350f;font-weight:bold;line-height:1.1;">F</td>';
             }
                 // Altri giorni (ferie)
                 else {
@@ -5565,7 +5572,7 @@ function exportToPDF(){
                         bgColor = '#ddd6fe'; textColor = '#5b21b6';
                     }
                     const displayPdf = v && v.startsWith('R-') ? v.substring(2) : v;
-                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:6px;line-height:1.2;">' + displayPdf + '</td>';
+                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ccc;padding:0px;text-align:center;font-weight:bold;font-size:5px;line-height:1.1;">' + displayPdf + '</td>';
                 }
             }
             html += '</tr>';
@@ -5586,7 +5593,7 @@ function exportToPDF(){
         filename: fileName + '.pdf',
         image: { type: 'jpeg', quality: 0.75 },
         html2canvas: { scale: 1.5, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true }
     };
     
     // Genera
