@@ -1833,6 +1833,19 @@ td.santo-patrono:hover { background: #fde8c8; }
     color: #ffffff !important;
 }
 
+/* Pre-Produzione: stessi colori del presidio */
+td.preprod-cell {
+    background: #1e3a8a !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    cursor: pointer;
+}
+[data-theme="dark"] td.preprod-cell {
+    background: #1d4ed8 !important;
+    color: #ffffff !important;
+}
+
 
 /* ================= SELEZIONE MULTIPLA ================= */
 .cell-selected {
@@ -2883,6 +2896,13 @@ body.user-mode #dashboardTable th{
 
     <button class="btn-full-day" onclick="applyRangeAllianz()" style="margin-top:12px;">Applica Release</button>
 
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);">
+        <div class="modal-section-title" style="margin-bottom:8px;">Seleziona Data PreProd</div>
+        <input type="date" id="allianzPreProd"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;">
+        <button class="btn-full-day" onclick="applyPreProd()" style="margin-top:10px;background:#1e3a8a;">Applica PreProd</button>
+    </div>
+
     <div class="modal-footer">
         <button class="cancel-btn" onclick="closeAllianzModal()">Annulla</button>
     </div>
@@ -3128,7 +3148,7 @@ function updateCellVisualState(td, value, rangeLabel){
     if(!td) return;
     td.textContent = "";
     td.innerHTML = "";
-    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell','multi-permit','santo-patrono');
+    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell','preprod-cell','multi-permit','santo-patrono');
     td.removeAttribute('data-range');
 
     const isSaturday = td.dataset && td.dataset.saturday === 'true';
@@ -3168,10 +3188,12 @@ function updateCellVisualState(td, value, rangeLabel){
         const displayVal = String(v).replace(' M','M').replace(' P','P');
         td.textContent = displayVal;
         if(v === '8') td.classList.add('full-day');
+        else if(v === 'PP'){ td.classList.add('preprod-cell'); td.setAttribute('data-range','Pre-Produzione'); }
+        else if(String(v).startsWith('R-')) td.classList.add('presidio-cell');
         else if(String(v).endsWith('M')) td.classList.add('morning-partial');
         else if(String(v).endsWith('P')) td.classList.add('afternoon-partial');
         const rl = ranges[0] || rangeLabel;
-        if(rl) td.setAttribute('data-range', rl);
+        if(rl && v !== 'PP') td.setAttribute('data-range', rl);
     }
 }
 
@@ -3825,6 +3847,7 @@ function renderPlanner(){
                     const rawRange = getRangeLabel(key);
 
                     if(v==="8") cls+=" full-day";
+                    else if(v === 'PP') cls+=" preprod-cell";
                     else if(v && v.startsWith('R-')) cls+=" presidio-cell";
                     else if(permits.length > 1){
                         cls += " multi-permit";
@@ -3834,8 +3857,11 @@ function renderPlanner(){
                     let displayV = '';
                     let rangeAttr = '';
 
-                    if(v && v.startsWith('R-')){
-                        displayV = v.substring(2); // mostra solo il numero
+                    if(v === 'PP'){
+                        displayV = 'PP';
+                        rangeAttr = ` data-range="Pre-Produzione"`;
+                    } else if(v && v.startsWith('R-')){
+                        displayV = v.substring(2);
                         rangeAttr = ` title="Release Allianz: ${v.substring(2)}"`;
                     } else if(permits.length > 1){
                         const ranges = parseRanges(rawRange);
@@ -4858,6 +4884,7 @@ function openAllianzModal(){
     document.getElementById('allianzStart').value = today;
     document.getElementById('allianzEnd').value   = today;
     document.getElementById('allianzReleaseNum').value = '';
+    document.getElementById('allianzPreProd').value = '';
     document.getElementById('allianzModal').style.display = 'flex';
 }
 
@@ -4870,6 +4897,46 @@ function syncAllianzEnd(){
 
 function closeAllianzModal(){
     document.getElementById('allianzModal').style.display = 'none';
+}
+
+async function applyPreProd(){
+    const dateVal = document.getElementById('allianzPreProd').value;
+    if(!dateVal){
+        alert('Seleziona una data PreProd.');
+        return;
+    }
+
+    const d    = new Date(dateVal);
+    const year = d.getFullYear();
+    const mi   = d.getMonth();
+    const day  = d.getDate();
+
+    const papyrusUsers = Object.entries(usersConfig)
+        .filter(([, cfg]) => cfg.areaPapyrus === true)
+        .map(([name]) => name);
+
+    if(papyrusUsers.length === 0){
+        alert('Nessun utente con AreaPapyrus abilitato trovato.');
+        return;
+    }
+
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    closeAllianzModal();
+
+    try {
+        for(const u of papyrusUsers){
+            const key = `${u}-${year}-${mi + 1}-${day}`;
+            await setFirebaseValue(key, 'PP');
+            dataCache[key] = 'PP';
+        }
+        render();
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert(`PreProd inserita per ${papyrusUsers.length} utenti Area Papyrus.`);
+    } catch(err){
+        console.error('Errore inserimento PreProd:', err);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante l\'inserimento. Riprova.');
+    }
 }
 
 async function applyRangeAllianz(){
@@ -5400,7 +5467,7 @@ function exportToPDF(){
     let html = '<div style="font-family:Arial,sans-serif;padding:20px;background:white;">';
     
     // Titolo
-    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Planner Ferie ' + currentYear + '</h1>';
+    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Piano Ferie ' + currentYear + '</h1>';
     
     // Calendari (3 mesi per foglio per visualizzazioni da trimestre in su)
     monthsToExport.forEach((mi, idx) => {
@@ -5465,16 +5532,18 @@ function exportToPDF(){
                     let bgColor = 'white';
                     let textColor = '#000';
                     if(v === '8'){
-                        bgColor = '#fecaca';
-                        textColor = '#991b1b';
+                        bgColor = '#fecaca'; textColor = '#991b1b';
+                    } else if(v === 'PP'){
+                        bgColor = '#1e3a8a'; textColor = '#ffffff';
+                    } else if(v && v.startsWith('R-')){
+                        bgColor = '#1e3a8a'; textColor = '#ffffff';
                     } else if(v.endsWith && v.endsWith('M')){
-                        bgColor = '#bfdbfe';
-                        textColor = '#1e3a8a';
+                        bgColor = '#bfdbfe'; textColor = '#1e3a8a';
                     } else if(v.endsWith && v.endsWith('P')){
-                        bgColor = '#ddd6fe';
-                        textColor = '#5b21b6';
+                        bgColor = '#ddd6fe'; textColor = '#5b21b6';
                     }
-                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:7px;">' + v + '</td>';
+                    const displayPdf = v && v.startsWith('R-') ? v.substring(2) : v;
+                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:7px;">' + displayPdf + '</td>';
                 }
             }
             html += '</tr>';
@@ -5489,13 +5558,13 @@ function exportToPDF(){
     element.innerHTML = html;
     document.body.appendChild(element);
     
-    // Opzioni
+    // Opzioni ottimizzate: margini 1cm, qualità ridotta per file più leggero
     const opt = {
-        margin: 10,
+        margin: [10, 10, 10, 10], // top, right, bottom, left in mm (1cm)
         filename: fileName + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        image: { type: 'jpeg', quality: 0.75 },
+        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
     };
     
     // Genera
