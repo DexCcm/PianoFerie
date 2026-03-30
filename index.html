@@ -3139,6 +3139,7 @@ function sanitizeYearData(raw){
     const clean = {};
     Object.entries(raw).forEach(([k,v]) => {
         if(k === FIREBASE_META_KEY) return;
+        if(k === '__ppDate') return; // metadato interno, non va in cache dati
         clean[k] = v;
     });
     return clean;
@@ -4573,14 +4574,38 @@ async function removeReleaseByKey(key, td){
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
+        // 1. Rimuovi la cella R- o PP per tutti gli utenti sulla data indicata
         for(const u of allUsers){
-            // Rimuovi R- / PP sulla data della release
             const k = `${u}-${year}-${month}-${day}`;
             try {
                 await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`));
             } catch(e){ console.warn(`skip ${k}`, e); }
             delete dataCache[k];
         }
+
+        // 2. Leggi la data PP salvata come metadato (__ppDate) e rimuovi anche quelle celle
+        try {
+            const ppMetaRef = window.firebaseDB.ref(`ferie${parseInt(year)}/__ppDate`);
+            const snap = await window.firebaseDB.get(ppMetaRef);
+            if(snap.exists()){
+                const ppMeta = snap.val(); // formato "anno-mese-giorno"
+                const ppParts = ppMeta.split('-');
+                const ppYear  = ppParts[0];
+                const ppMonth = ppParts[1];
+                const ppDay   = ppParts[2];
+                for(const u of allUsers){
+                    const k = `${u}-${ppYear}-${ppMonth}-${ppDay}`;
+                    try {
+                        await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${parseInt(ppYear)}/${k}`));
+                    } catch(e){ console.warn(`skip PP ${k}`, e); }
+                    delete dataCache[k];
+                }
+                // Rimuovi anche il metadato __ppDate
+                await window.firebaseDB.remove(ppMetaRef);
+                delete dataCache['__ppDate'];
+            }
+        } catch(e){ console.warn('skip __ppDate read', e); }
+
         await ensureYearRootExists(parseInt(year));
         render();
         document.getElementById('loadingOverlay').style.display = 'none';
@@ -5023,11 +5048,15 @@ async function applyRangeAllianz(){
             const ppYear  = ppDate.getFullYear();
             const ppMonth = ppDate.getMonth();
             const ppDay   = ppDate.getDate();
-            for(const u of papyrusUsers){
+            for(const u of (window.usersList || users)){
                 const key = `${u}-${ppYear}-${ppMonth + 1}-${ppDay}`;
                 await setFirebaseValue(key, 'PP');
                 dataCache[key] = 'PP';
             }
+            // Salva la data PP come metadato per poterla rimuovere in seguito
+            const ppMeta = `${ppYear}-${ppMonth + 1}-${ppDay}`;
+            await window.firebaseDB.set(window.firebaseDB.ref(`ferie${ppYear}/__ppDate`), ppMeta);
+            dataCache['__ppDate'] = ppMeta;
         }
 
         render();
