@@ -2897,10 +2897,9 @@ body.user-mode #dashboardTable th{
     <button class="btn-full-day" onclick="applyRangeAllianz()" style="margin-top:12px;">Applica Release</button>
 
     <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);">
-        <div class="modal-section-title" style="margin-bottom:8px;">Seleziona Data PreProd</div>
+        <div class="modal-section-title" style="margin-bottom:8px;">Scegli la data di PreProd</div>
         <input type="date" id="allianzPreProd"
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;">
-        <button class="btn-full-day" onclick="applyPreProd()" style="margin-top:10px;background:#1e3a8a;">Applica PreProd</button>
     </div>
 
     <div class="modal-footer">
@@ -4563,7 +4562,7 @@ async function removeReleaseByKey(key, td){
         for(const u of targetUsers){
             const k = `${u}-${year}-${month}-${day}`;
             const existing = dataCache[k] || '';
-            if(existing.startsWith('R-')){
+            if(existing.startsWith('R-') || existing === 'PP'){
                 const dbRef = window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`);
                 await window.firebaseDB.remove(dbRef);
                 delete dataCache[k];
@@ -4986,8 +4985,6 @@ async function applyRangeAllianz(){
         for(const item of datesToInsert){
             for(const u of papyrusUsers){
                 const key = `${u}-${item.year}-${item.month + 1}-${item.day}`;
-                // Se esiste già un valore ferie/permesso, non sovrascrivere — affianca
-                // (per ora sovrascriviamo solo se la cella è vuota o già presidio)
                 const existing = dataCache[key] || '';
                 if(!existing || existing.startsWith('R-')){
                     await setFirebaseValue(key, value);
@@ -4995,6 +4992,21 @@ async function applyRangeAllianz(){
                 }
             }
         }
+
+        // Applica PreProd se data selezionata
+        const preProdVal = document.getElementById('allianzPreProd') ? document.getElementById('allianzPreProd').value : '';
+        if(preProdVal){
+            const ppDate  = new Date(preProdVal);
+            const ppYear  = ppDate.getFullYear();
+            const ppMonth = ppDate.getMonth();
+            const ppDay   = ppDate.getDate();
+            for(const u of papyrusUsers){
+                const key = `${u}-${ppYear}-${ppMonth + 1}-${ppDay}`;
+                await setFirebaseValue(key, 'PP');
+                dataCache[key] = 'PP';
+            }
+        }
+
         render();
         document.getElementById('loadingOverlay').style.display = 'none';
         alert(`Release ${releaseNum} inserita per ${papyrusUsers.length} utenti Area Papyrus (${datesToInsert.length} giorni).`);
@@ -5479,14 +5491,14 @@ function exportToPDF(){
             html += '<div style="page-break-before:always;"></div>';
         }
         
-        html += '<div style="margin-bottom:15px;page-break-inside:avoid;">';
-        html += '<div style="background:#eff3ff;color:#172754;font-size:13px;font-weight:bold;text-align:center;padding:6px;border-bottom:2px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
-        html += '<table style="width:100%;border-collapse:collapse;font-size:7px;table-layout:fixed;">';
-        html += '<thead><tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ddd;padding:2px;font-weight:bold;font-size:7px;width:45px;">Utente</th>';
+        html += '<div style="margin-bottom:8px;page-break-inside:avoid;">';
+        html += '<div style="background:#eff3ff;color:#172754;font-size:10px;font-weight:bold;text-align:center;padding:3px;border-bottom:2px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:6px;table-layout:fixed;">';
+        html += '<thead><tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ddd;padding:1px 2px;font-weight:bold;font-size:6px;width:40px;line-height:1;">Utente</th>';
         
         for(let d = 1; d <= m.d; d++){
             const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
-            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ddd;padding:0px;font-weight:bold;font-size:6px;">' + dayName + '</th>';
+            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ddd;padding:0px;font-weight:bold;font-size:5px;line-height:1.2;">' + dayName + '</th>';
         }
         html += '</tr><tr>';
         
@@ -5494,14 +5506,14 @@ function exportToPDF(){
             const wd = new Date(currentYear, mi, d).getDay();
             const isHoliday = wd === 0 || wd === 6 || m.h.includes(d);
             const bgColor = isHoliday ? '#fef3c7' : '#dbeafe';
-            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ddd;padding:0px;font-weight:bold;font-size:7px;">' + d + '</th>';
+            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ddd;padding:0px;font-weight:bold;font-size:6px;line-height:1.2;">' + d + '</th>';
         }
         html += '</tr></thead><tbody>';
         
         users.forEach(u => {
             // Abbrevia nomi lunghi
             const userName = u.length > 8 ? u.substring(0,7) : u;
-            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ddd;padding:1px 2px;font-size:7px;">' + userName + '</td>';
+            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ddd;padding:0px 2px;font-size:6px;line-height:1.2;">' + userName + '</td>';
             for(let d = 1; d <= m.d; d++){
                 const wd = new Date(currentYear, mi, d).getDay();
                 // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
@@ -5509,7 +5521,7 @@ function exportToPDF(){
                 const v = dataCache[key] || "";
                 
             if(wd === 0){
-                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;color:#78350f;font-weight:bold;">D</td>';
+                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:5px;color:#78350f;font-weight:bold;line-height:1.2;">D</td>';
             }
             else if(wd === 6){
                 let displayValue = v || "S";
@@ -5522,10 +5534,10 @@ function exportToPDF(){
                     textColor = '#ffffff';
                 }
 
-                html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:7px;">' + displayValue + '</td>';
+                html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:6px;line-height:1.2;">' + displayValue + '</td>';
             }
             else if(m.h.includes(d)){
-                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:6px;color:#78350f;font-weight:bold;">F</td>';
+                html += '<td style="background:#fef3c7;border:1px solid #ddd;padding:0px;text-align:center;font-size:5px;color:#78350f;font-weight:bold;line-height:1.2;">F</td>';
             }
                 // Altri giorni (ferie)
                 else {
@@ -5543,7 +5555,7 @@ function exportToPDF(){
                         bgColor = '#ddd6fe'; textColor = '#5b21b6';
                     }
                     const displayPdf = v && v.startsWith('R-') ? v.substring(2) : v;
-                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:7px;">' + displayPdf + '</td>';
+                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ddd;padding:0px;text-align:center;font-weight:bold;font-size:6px;line-height:1.2;">' + displayPdf + '</td>';
                 }
             }
             html += '</tr>';
