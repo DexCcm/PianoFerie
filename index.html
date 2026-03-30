@@ -4472,7 +4472,7 @@ function openModal(td,key,day,month,isSaturday){
         existingList.innerHTML = '';
         const tag = document.createElement('div');
         tag.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;background:#1e3a8a;color:#ffffff;`;
-        tag.innerHTML = `Pre-Produzione inserita <span onclick="handleRemoveValue()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
+        tag.innerHTML = `Pre-Produzione inserita <span onclick="removePPFromModal()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
         existingList.appendChild(tag);
         existingBox.style.display = 'block';
     } else {
@@ -4485,6 +4485,15 @@ function openModal(td,key,day,month,isSaturday){
 function closeModal(){
     document.getElementById("modal").style.display="none";
     activeCell=null;
+}
+
+// Rimozione PP direttamente dal tag nella modale ferie (senza aprire un'altra modale)
+async function removePPFromModal(){
+    if(!activeCell || !activeCell.key) return;
+    const key = activeCell.key;
+    const td  = activeCell.td;
+    activeCell = null; // azzera subito
+    await removeReleaseByKey(key, td);
 }
 
 function handleRemoveValue(){
@@ -4564,17 +4573,22 @@ async function removeReleaseByKey(key, td){
     );
     targetUsers.add(currentUser);
 
+    // Chiudi anche la modale ferie se aperta
+    closeModal();
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
         for(const u of targetUsers){
             const k = `${u}-${year}-${month}-${day}`;
-            const existing = dataCache[k] || '';
-            if(existing.startsWith('R-') || existing === 'PP'){
+            // Rimuovi sempre da Firebase — non dipendere dalla cache locale
+            // (gli altri utenti potrebbero non essere in cache se non ancora caricati)
+            try {
                 const dbRef = window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`);
                 await window.firebaseDB.remove(dbRef);
-                delete dataCache[k];
+            } catch(innerErr){
+                console.warn(`Errore rimozione ${k}:`, innerErr);
             }
+            delete dataCache[k];
         }
         await ensureYearRootExists(parseInt(year));
         render();
