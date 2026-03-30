@@ -1312,7 +1312,8 @@ th.member-name,td.member-name{
     text-align:left;
     padding-left:10px;
     white-space:nowrap;
-    font-size:14px; /* +1pt */
+    font-size:14px;
+    text-transform: uppercase;
 }
 
 .weekday-row th{
@@ -4566,32 +4567,19 @@ async function removeReleaseByKey(key, td){
     const month = parts[parts.length - 2];
     const day   = parts[parts.length - 1];
 
-    // Usa TUTTI gli utenti — non dipendere dai flag areaPapyrus/allianz
-    // che potrebbero non essere aggiornati. Rimuoviamo da chiunque abbia
-    // quel giorno valorizzato con R- o PP.
     const allUsers = window.usersList || users || [];
 
-    // Chiudi anche la modale ferie se aperta
     closeModal();
     document.getElementById('loadingOverlay').style.display = 'flex';
 
-    console.log(`[removeReleaseByKey] key=${key} year=${year} month=${month} day=${day} users=${allUsers.length}`);
-
     try {
         for(const u of allUsers){
+            // Rimuovi R- / PP sulla data della release
             const k = `${u}-${year}-${month}-${day}`;
-            // Rimuovi se il valore è R- o PP (o se non si riesce a verificare)
-            const existing = dataCache[k] || '';
-            if(existing.startsWith('R-') || existing === 'PP' || u === currentUser){
-                try {
-                    const dbRef = window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`);
-                    await window.firebaseDB.remove(dbRef);
-                    console.log(`[removeReleaseByKey] rimosso ${k}`);
-                } catch(innerErr){
-                    console.warn(`Errore rimozione ${k}:`, innerErr);
-                }
-                delete dataCache[k];
-            }
+            try {
+                await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`));
+            } catch(e){ console.warn(`skip ${k}`, e); }
+            delete dataCache[k];
         }
         await ensureYearRootExists(parseInt(year));
         render();
@@ -5513,8 +5501,8 @@ function exportToPDF(){
     // Costruisci HTML - SOLO CALENDARI (landscape A4: 277mm utili × 190mm utili dopo margini)
     let html = '<div style="font-family:Arial,sans-serif;background:white;width:100%;">';
     
-    // Titolo compatto
-    html += '<h1 style="text-align:center;color:#172754;font-size:14px;margin:0 0 6px;">Piano Ferie ' + currentYear + '</h1>';
+    // Titolo
+    html += '<h1 style="text-align:center;color:#172754;font-size:16px;margin:0 0 6px;">Piano Ferie ' + currentYear + '</h1>';
     
     // Calendari — 3 mesi per pagina
     monthsToExport.forEach((mi, idx) => {
@@ -5522,74 +5510,58 @@ function exportToPDF(){
         
         // Page break ogni 3 mesi
         if(idx > 0 && idx % 3 === 0){
-            html += '<div style="page-break-before:always;height:6px;"></div>';
+            html += '<div style="page-break-before:always;height:4px;"></div>';
         }
         
-        html += '<div style="margin-bottom:4px;page-break-inside:avoid;">';
-        html += '<div style="background:#eff3ff;color:#172754;font-size:8px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
-        html += '<table style="width:100%;border-collapse:collapse;font-size:5px;table-layout:fixed;">';
-        html += '<thead><tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0 1px;font-weight:bold;font-size:5px;width:32px;line-height:1.1;">Utente</th>';
+        html += '<div style="margin-bottom:3px;page-break-inside:avoid;">';
+        html += '<div style="background:#eff3ff;color:#172754;font-size:9px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:2px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:8px;table-layout:fixed;">';
+        // thead: height esplicito per dimezzare le righe
+        html += '<thead>';
+        html += '<tr style="height:10px;"><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0 2px;font-weight:bold;font-size:7px;width:38px;line-height:1;vertical-align:middle;">Utente</th>';
         
         for(let d = 1; d <= m.d; d++){
             const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
-            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0px;font-weight:bold;font-size:4px;line-height:1.1;">' + dayName + '</th>';
+            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:7px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
         }
-        html += '</tr><tr>';
-        
+        html += '</tr>';
+        html += '<tr style="height:10px;">';
         for(let d = 1; d <= m.d; d++){
             const wd = new Date(currentYear, mi, d).getDay();
             const isHoliday = wd === 0 || wd === 6 || m.h.includes(d);
             const bgColor = isHoliday ? '#fef3c7' : '#dbeafe';
-            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ccc;padding:0px;font-weight:bold;font-size:5px;line-height:1.1;">' + d + '</th>';
+            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:8px;line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
         }
         html += '</tr></thead><tbody>';
         
         users.forEach(u => {
-            // Abbrevia nomi lunghi
-            const userName = u.length > 8 ? u.substring(0,7) : u;
-            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ccc;padding:0 1px;font-size:5px;line-height:1.1;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
+            const userName = (u.length > 9 ? u.substring(0,8) : u).toUpperCase();
+            // height:11px = circa metà dell'altezza standard (~22px)
+            html += '<tr style="height:11px;"><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ccc;padding:0 2px;font-size:7px;line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
             for(let d = 1; d <= m.d; d++){
                 const wd = new Date(currentYear, mi, d).getDay();
-                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
                 const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
                 const v = dataCache[key] || "";
+                const cellStyle = 'border:1px solid #ccc;padding:0;text-align:center;font-weight:bold;line-height:1;vertical-align:middle;font-size:8px;';
                 
-            if(wd === 0){
-                html += '<td style="background:#fef3c7;border:1px solid #ccc;padding:0px;text-align:center;font-size:4px;color:#78350f;font-weight:bold;line-height:1.1;">D</td>';
-            }
-            else if(wd === 6){
-                let displayValue = v || "S";
-                let bgColor = '#fef3c7';
-                let textColor = '#78350f';
-
-                if(v.startsWith && v.startsWith('R-')){
-                    displayValue = v.substring(2);
-                    bgColor = '#1e3a8a';
-                    textColor = '#ffffff';
-                }
-
-                html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ccc;padding:0px;text-align:center;font-weight:bold;font-size:5px;line-height:1.1;">' + displayValue + '</td>';
-            }
-            else if(m.h.includes(d)){
-                html += '<td style="background:#fef3c7;border:1px solid #ccc;padding:0px;text-align:center;font-size:4px;color:#78350f;font-weight:bold;line-height:1.1;">F</td>';
-            }
-                // Altri giorni (ferie)
-                else {
-                    let bgColor = 'white';
-                    let textColor = '#000';
-                    if(v === '8'){
-                        bgColor = '#fecaca'; textColor = '#991b1b';
-                    } else if(v === 'PP'){
-                        bgColor = '#1e3a8a'; textColor = '#ffffff';
-                    } else if(v && v.startsWith('R-')){
-                        bgColor = '#1e3a8a'; textColor = '#ffffff';
-                    } else if(v.endsWith && v.endsWith('M')){
-                        bgColor = '#bfdbfe'; textColor = '#1e3a8a';
-                    } else if(v.endsWith && v.endsWith('P')){
-                        bgColor = '#ddd6fe'; textColor = '#5b21b6';
-                    }
-                    const displayPdf = v && v.startsWith('R-') ? v.substring(2) : v;
-                    html += '<td style="background:' + bgColor + ';color:' + textColor + ';border:1px solid #ccc;padding:0px;text-align:center;font-weight:bold;font-size:5px;line-height:1.1;">' + displayPdf + '</td>';
+                if(wd === 0){
+                    html += '<td style="background:#fef3c7;' + cellStyle + 'color:#78350f;">D</td>';
+                } else if(wd === 6){
+                    let dv = v || "S";
+                    let bg = '#fef3c7', tc = '#78350f';
+                    if(v.startsWith && v.startsWith('R-')){ dv = v.substring(2); bg = '#1e3a8a'; tc = '#fff'; }
+                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cellStyle + '">' + dv + '</td>';
+                } else if(m.h.includes(d)){
+                    html += '<td style="background:#fef3c7;' + cellStyle + 'color:#78350f;">F</td>';
+                } else {
+                    let bg = 'white', tc = '#000';
+                    if(v === '8'){ bg = '#fecaca'; tc = '#991b1b'; }
+                    else if(v === 'PP'){ bg = '#1e3a8a'; tc = '#fff'; }
+                    else if(v && v.startsWith('R-')){ bg = '#1e3a8a'; tc = '#fff'; }
+                    else if(v.endsWith && v.endsWith('M')){ bg = '#bfdbfe'; tc = '#1e3a8a'; }
+                    else if(v.endsWith && v.endsWith('P')){ bg = '#ddd6fe'; tc = '#5b21b6'; }
+                    const dv = v && v.startsWith('R-') ? v.substring(2) : v;
+                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cellStyle + '">' + dv + '</td>';
                 }
             }
             html += '</tr>';
