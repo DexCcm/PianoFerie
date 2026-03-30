@@ -2894,13 +2894,13 @@ body.user-mode #dashboardTable th{
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
     </div>
 
-    <button class="btn-full-day" onclick="applyRangeAllianz()" style="margin-top:12px;">Applica Release</button>
-
-    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-color);">
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);">
         <div class="modal-section-title" style="margin-bottom:8px;">Scegli la data di PreProd</div>
         <input type="date" id="allianzPreProd"
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;">
     </div>
+
+    <button class="btn-full-day" onclick="applyRangeAllianz()" style="margin-top:12px;">Applica Release</button>
 
     <div class="modal-footer">
         <button class="cancel-btn" onclick="closeAllianzModal()">Annulla</button>
@@ -4939,9 +4939,19 @@ async function applyPreProd(){
 }
 
 async function applyRangeAllianz(){
-    const releaseNum = document.getElementById('allianzReleaseNum').value.trim();
+    const releaseNum  = document.getElementById('allianzReleaseNum').value.trim();
+    const preProdVal  = document.getElementById('allianzPreProd').value;
+
+    if(!releaseNum && !preProdVal){
+        alert('Inserisci il numero di release e la data di PreProd.');
+        return;
+    }
     if(!releaseNum){
-        alert('Inserisci un numero di release.');
+        alert('Inserisci il numero di release.');
+        return;
+    }
+    if(!preProdVal){
+        alert('Inserisci la data di PreProd.');
         return;
     }
 
@@ -5479,7 +5489,7 @@ function exportToPDF(){
     let html = '<div style="font-family:Arial,sans-serif;padding:20px;background:white;">';
     
     // Titolo
-    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Piano Ferie ' + currentYear + '</h1>';
+    html += '<h1 style="text-align:center;color:#172754;font-size:24px;margin-bottom:20px;">Planner Ferie ' + currentYear + '</h1>';
     
     // Calendari (3 mesi per foglio per visualizzazioni da trimestre in su)
     monthsToExport.forEach((mi, idx) => {
