@@ -4566,29 +4566,32 @@ async function removeReleaseByKey(key, td){
     const month = parts[parts.length - 2];
     const day   = parts[parts.length - 1];
 
-    const targetUsers = new Set(
-        Object.entries(usersConfig)
-            .filter(([, cfg]) => cfg.areaPapyrus === true || cfg.allianz === true)
-            .map(([name]) => name)
-    );
-    targetUsers.add(currentUser);
+    // Usa TUTTI gli utenti — non dipendere dai flag areaPapyrus/allianz
+    // che potrebbero non essere aggiornati. Rimuoviamo da chiunque abbia
+    // quel giorno valorizzato con R- o PP.
+    const allUsers = window.usersList || users || [];
 
     // Chiudi anche la modale ferie se aperta
     closeModal();
     document.getElementById('loadingOverlay').style.display = 'flex';
 
+    console.log(`[removeReleaseByKey] key=${key} year=${year} month=${month} day=${day} users=${allUsers.length}`);
+
     try {
-        for(const u of targetUsers){
+        for(const u of allUsers){
             const k = `${u}-${year}-${month}-${day}`;
-            // Rimuovi sempre da Firebase — non dipendere dalla cache locale
-            // (gli altri utenti potrebbero non essere in cache se non ancora caricati)
-            try {
-                const dbRef = window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`);
-                await window.firebaseDB.remove(dbRef);
-            } catch(innerErr){
-                console.warn(`Errore rimozione ${k}:`, innerErr);
+            // Rimuovi se il valore è R- o PP (o se non si riesce a verificare)
+            const existing = dataCache[k] || '';
+            if(existing.startsWith('R-') || existing === 'PP' || u === currentUser){
+                try {
+                    const dbRef = window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`);
+                    await window.firebaseDB.remove(dbRef);
+                    console.log(`[removeReleaseByKey] rimosso ${k}`);
+                } catch(innerErr){
+                    console.warn(`Errore rimozione ${k}:`, innerErr);
+                }
+                delete dataCache[k];
             }
-            delete dataCache[k];
         }
         await ensureYearRootExists(parseInt(year));
         render();
