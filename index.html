@@ -4744,6 +4744,15 @@ function applyPermesso(turno){
         }
         permits.push(newValue);
         ranges.push(newRange);
+        // Ordina sempre: M prima di P
+        const combined = permits.map((p, i) => ({ p, r: ranges[i] || '' }));
+        combined.sort((a, b) => {
+            const aM = String(a.p).endsWith('M') ? 0 : 1;
+            const bM = String(b.p).endsWith('M') ? 0 : 1;
+            return aM - bM;
+        });
+        permits.splice(0, permits.length, ...combined.map(x => x.p));
+        ranges.splice(0, ranges.length, ...combined.map(x => x.r));
         finalValue = JSON.stringify(permits);
         finalRange = JSON.stringify(ranges);
     } else {
@@ -5531,61 +5540,56 @@ function exportToPDF(){
         monthsToExport = [0,1,2,3,4,5,6,7,8,9,10,11];
     }
     
-    // Costruisci HTML - SOLO CALENDARI (landscape A4: 277mm utili × 190mm utili dopo margini)
+    // Costruisci HTML - landscape A4, 3 mesi per pagina
+    // Con 14 utenti + 2 righe header: 16 righe × 7px = 112px per tabella
+    // + titolo mese ~14px + margine 3px = ~129px × 3 = ~390px totali
+    // A4 landscape ~794px di altezza utile → ci stanno 3 tabelle
     let html = '<div style="font-family:Arial,sans-serif;background:white;width:100%;">';
+    html += '<h1 style="text-align:center;color:#172754;font-size:14px;margin:0 0 4px;">Piano Ferie ' + currentYear + '</h1>';
     
-    // Titolo
-    html += '<h1 style="text-align:center;color:#172754;font-size:16px;margin:0 0 6px;">Piano Ferie ' + currentYear + '</h1>';
-    
-    // Calendari — 3 mesi per pagina
     monthsToExport.forEach((mi, idx) => {
         const m = months[mi];
         
-        // Page break ogni 3 mesi
         if(idx > 0 && idx % 3 === 0){
-            html += '<div style="page-break-before:always;height:4px;"></div>';
+            html += '<div style="page-break-before:always;"></div>';
         }
         
-        html += '<div style="margin-bottom:3px;page-break-inside:avoid;">';
-        html += '<div style="background:#eff3ff;color:#172754;font-size:9px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:2px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
-        html += '<table style="width:100%;border-collapse:collapse;font-size:8px;table-layout:fixed;">';
-        // thead: height esplicito per dimezzare le righe
+        html += '<div style="margin-bottom:2px;">';
+        html += '<div style="background:#dbeafe;color:#172754;font-size:7px;font-weight:bold;text-align:center;padding:1px 0;border-bottom:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
         html += '<thead>';
-        html += '<tr style="height:10px;"><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0 2px;font-weight:bold;font-size:7px;width:38px;line-height:1;vertical-align:middle;">Utente</th>';
-        
+        // Riga 1: giorni della settimana
+        html += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0 1px;font-weight:bold;font-size:6px;width:34px;height:7px;line-height:1;vertical-align:middle;">Utente</th>';
         for(let d = 1; d <= m.d; d++){
             const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
-            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:7px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
+            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:5px;height:7px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
         }
         html += '</tr>';
-        html += '<tr style="height:10px;">';
+        // Riga 2: numeri giorno
+        html += '<tr>';
         for(let d = 1; d <= m.d; d++){
             const wd = new Date(currentYear, mi, d).getDay();
-            const isHoliday = wd === 0 || wd === 6 || m.h.includes(d);
-            const bgColor = isHoliday ? '#fef3c7' : '#dbeafe';
-            html += '<th style="background:' + bgColor + ';color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:8px;line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
+            const isH = wd === 0 || wd === 6 || m.h.includes(d);
+            html += '<th style="background:' + (isH ? '#fef3c7' : '#dbeafe') + ';color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:6px;height:7px;line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
         }
         html += '</tr></thead><tbody>';
         
         users.forEach(u => {
             const userName = (u.length > 9 ? u.substring(0,8) : u).toUpperCase();
-            // height:11px = circa metà dell'altezza standard (~22px)
-            html += '<tr style="height:11px;"><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ccc;padding:0 2px;font-size:7px;line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
+            const cs = 'border:1px solid #ccc;padding:0;text-align:center;font-weight:bold;font-size:6px;height:7px;line-height:1;vertical-align:middle;';
+            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ccc;padding:0 1px;font-size:6px;height:7px;line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
             for(let d = 1; d <= m.d; d++){
-                const wd = new Date(currentYear, mi, d).getDay();
+                const wd  = new Date(currentYear, mi, d).getDay();
                 const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
-                const v = dataCache[key] || "";
-                const cellStyle = 'border:1px solid #ccc;padding:0;text-align:center;font-weight:bold;line-height:1;vertical-align:middle;font-size:8px;';
-                
+                const v   = dataCache[key] || "";
                 if(wd === 0){
-                    html += '<td style="background:#fef3c7;' + cellStyle + 'color:#78350f;">D</td>';
+                    html += '<td style="background:#fef3c7;' + cs + 'color:#78350f;">D</td>';
                 } else if(wd === 6){
-                    let dv = v || "S";
-                    let bg = '#fef3c7', tc = '#78350f';
+                    let dv = v || "S", bg = '#fef3c7', tc = '#78350f';
                     if(v.startsWith && v.startsWith('R-')){ dv = v.substring(2); bg = '#1e3a8a'; tc = '#fff'; }
-                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cellStyle + '">' + dv + '</td>';
+                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
                 } else if(m.h.includes(d)){
-                    html += '<td style="background:#fef3c7;' + cellStyle + 'color:#78350f;">F</td>';
+                    html += '<td style="background:#fef3c7;' + cs + 'color:#78350f;">F</td>';
                 } else {
                     let bg = 'white', tc = '#000';
                     if(v === '8'){ bg = '#fecaca'; tc = '#991b1b'; }
@@ -5594,7 +5598,7 @@ function exportToPDF(){
                     else if(v.endsWith && v.endsWith('M')){ bg = '#bfdbfe'; tc = '#1e3a8a'; }
                     else if(v.endsWith && v.endsWith('P')){ bg = '#ddd6fe'; tc = '#5b21b6'; }
                     const dv = v && v.startsWith('R-') ? v.substring(2) : v;
-                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cellStyle + '">' + dv + '</td>';
+                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
                 }
             }
             html += '</tr>';
