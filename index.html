@@ -2409,12 +2409,12 @@ body.user-mode #dashboardTable th{
 /* Badge immagine utente — in alto a destra */
 .floating-badge {
     position: fixed;
-    top: 160px;
+    top: 60px;
     right: 16px;
     z-index: 996;
-    width: 180px;
-    height: 180px;
-    border-radius: 100px;
+    width: 110px;
+    height: 110px;
+    border-radius: 12px;
     object-fit: cover;
     box-shadow: 0 4px 16px rgba(0,0,0,0.18);
     opacity: 0.92;
@@ -2423,7 +2423,7 @@ body.user-mode #dashboardTable th{
     zoom: 1;
 }
 .floating-badge:hover {
-    
+    opacity: 1;
     transform: scale(1.05);
     box-shadow: 0 6px 24px rgba(0,0,0,0.28);
 }
@@ -2644,7 +2644,7 @@ body.user-mode #dashboardTable th{
     <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
-        <span class="btn-text">INSERISCI RELEASE</span>
+        <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
     </button>
 </div>
 
@@ -5571,72 +5571,81 @@ function exportToPDF(){
         monthsToExport = [0,1,2,3,4,5,6,7,8,9,10,11];
     }
     
-    // Costruisci HTML - landscape A4, 3 mesi per pagina
-    // Con 14 utenti + 2 righe header: 16 righe × 7px = 112px per tabella
-    // + titolo mese ~14px + margine 3px = ~129px × 3 = ~390px totali
-    // A4 landscape ~794px di altezza utile → ci stanno 3 tabelle
+    // Costruisci HTML - landscape A4, 3 mesi per pagina distribuiti uniformemente
+    // Strategia: wrapper flex column con justify-content:space-between per sfruttare tutta l'altezza
+    // Righe altezza 13px, font 8px → leggibile anche su carta stampata
     let html = '<div style="font-family:Arial,sans-serif;background:white;width:100%;">';
-    html += '<h1 style="text-align:center;color:#172754;font-size:14px;margin:0 0 4px;">Piano Ferie ' + currentYear + '</h1>';
-    
-    monthsToExport.forEach((mi, idx) => {
-        const m = months[mi];
-        
-        if(idx > 0 && idx % 3 === 0){
+    html += '<h1 style="text-align:center;color:#172754;font-size:16px;margin:0 0 6px;font-weight:bold;">Piano Ferie ' + currentYear + '</h1>';
+
+    // Raggruppa i mesi in pagine da 3
+    const pages = [];
+    for(let i = 0; i < monthsToExport.length; i += 3){
+        pages.push(monthsToExport.slice(i, i + 3));
+    }
+
+    pages.forEach((pageMeses, pageIdx) => {
+        if(pageIdx > 0){
             html += '<div style="page-break-before:always;"></div>';
         }
-        
-        html += '<div style="margin-bottom:2px;">';
-        html += '<div style="background:#dbeafe;color:#172754;font-size:7px;font-weight:bold;text-align:center;padding:1px 0;border-bottom:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
-        html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
-        html += '<thead>';
-        // Riga 1: giorni della settimana
-        html += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0 1px;font-weight:bold;font-size:6px;width:34px;height:7px;line-height:1;vertical-align:middle;">Utente</th>';
-        for(let d = 1; d <= m.d; d++){
-            const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
-            html += '<th style="background:#dbeafe;color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:5px;height:7px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
-        }
-        html += '</tr>';
-        // Riga 2: numeri giorno
-        html += '<tr>';
-        for(let d = 1; d <= m.d; d++){
-            const wd = new Date(currentYear, mi, d).getDay();
-            const isH = wd === 0 || wd === 6 || m.h.includes(d);
-            html += '<th style="background:' + (isH ? '#fef3c7' : '#dbeafe') + ';color:#172754;border:1px solid #ccc;padding:0;font-weight:bold;font-size:6px;height:7px;line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
-        }
-        html += '</tr></thead><tbody>';
-        
-        users.forEach(u => {
-            const userName = (u.length > 9 ? u.substring(0,8) : u).toUpperCase();
-            const cs = 'border:1px solid #ccc;padding:0;text-align:center;font-weight:bold;font-size:6px;height:7px;line-height:1;vertical-align:middle;';
-            html += '<tr><td style="font-weight:bold;text-align:left;background:#f9fafb;border:1px solid #ccc;padding:0 1px;font-size:6px;height:7px;line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
+        // Contenitore pagina: flex column, distribuisce le 3 tabelle uniformemente
+        html += '<div style="display:flex;flex-direction:column;justify-content:space-between;min-height:180mm;gap:4mm;">';
+
+        pageMeses.forEach(mi => {
+            const m = months[mi];
+            html += '<div style="flex:1;">';
+            html += '<div style="background:#dbeafe;color:#172754;font-size:9px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:2px solid #172754;border:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
+            html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
+            html += '<thead>';
+            // Riga giorni settimana
+            html += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0 2px;font-weight:bold;font-size:7px;width:40px;height:12px;line-height:1;vertical-align:middle;text-align:left;">Utente</th>';
             for(let d = 1; d <= m.d; d++){
-                const wd  = new Date(currentYear, mi, d).getDay();
-                const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
-                const v   = dataCache[key] || "";
-                if(wd === 0){
-                    html += '<td style="background:#fef3c7;' + cs + 'color:#78350f;">D</td>';
-                } else if(wd === 6){
-                    let dv = v || "S", bg = '#fef3c7', tc = '#78350f';
-                    if(v.startsWith && v.startsWith('R-')){ dv = v.substring(2); bg = '#1e3a8a'; tc = '#fff'; }
-                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
-                } else if(m.h.includes(d)){
-                    html += '<td style="background:#fef3c7;' + cs + 'color:#78350f;">F</td>';
-                } else {
-                    let bg = 'white', tc = '#000';
-                    if(v === '8'){ bg = '#fecaca'; tc = '#991b1b'; }
-                    else if(v === 'PP'){ bg = '#1e3a8a'; tc = '#fff'; }
-                    else if(v && v.startsWith('R-')){ bg = '#1e3a8a'; tc = '#fff'; }
-                    else if(v.endsWith && v.endsWith('M')){ bg = '#bfdbfe'; tc = '#1e3a8a'; }
-                    else if(v.endsWith && v.endsWith('P')){ bg = '#ddd6fe'; tc = '#5b21b6'; }
-                    const dv = v && v.startsWith('R-') ? v.substring(2) : v;
-                    html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
-                }
+                const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
+                html += '<th style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:7px;height:12px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
             }
-            html += '</tr>';
+            html += '</tr><tr>';
+            for(let d = 1; d <= m.d; d++){
+                const wd = new Date(currentYear, mi, d).getDay();
+                const isH = wd === 0 || wd === 6 || m.h.includes(d);
+                html += '<th style="background:' + (isH ? '#fde68a' : '#dbeafe') + ';color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:8px;height:12px;line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
+            }
+            html += '</tr></thead><tbody>';
+
+            users.forEach(u => {
+                const userName = (u.length > 10 ? u.substring(0,9) : u).toUpperCase();
+                const rh = 'height:13px;';
+                const cs = 'border:1px solid #aaa;padding:0;text-align:center;font-weight:bold;font-size:8px;' + rh + 'line-height:1;vertical-align:middle;';
+                html += '<tr><td style="font-weight:bold;text-align:left;background:#f1f5f9;border:1px solid #aaa;padding:0 2px;font-size:8px;' + rh + 'line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
+                for(let d = 1; d <= m.d; d++){
+                    const wd  = new Date(currentYear, mi, d).getDay();
+                    const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
+                    const v   = dataCache[key] || "";
+                    if(wd === 0){
+                        html += '<td style="background:#fde68a;' + cs + 'color:#92400e;">D</td>';
+                    } else if(wd === 6){
+                        let dv = v || "S", bg = '#fde68a', tc = '#92400e';
+                        if(v.startsWith && v.startsWith('R-')){ dv = v.substring(2); bg = '#1e40af'; tc = '#fff'; }
+                        html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
+                    } else if(m.h.includes(d)){
+                        html += '<td style="background:#fde68a;' + cs + 'color:#92400e;">F</td>';
+                    } else {
+                        let bg = '#fff', tc = '#111';
+                        if(v === '8'){ bg = '#fca5a5'; tc = '#7f1d1d'; }
+                        else if(v === 'PP'){ bg = '#1e40af'; tc = '#fff'; }
+                        else if(v && v.startsWith('R-')){ bg = '#1e40af'; tc = '#fff'; }
+                        else if(v.endsWith && v.endsWith('M')){ bg = '#93c5fd'; tc = '#1e3a8a'; }
+                        else if(v.endsWith && v.endsWith('P')){ bg = '#c4b5fd'; tc = '#4c1d95'; }
+                        const dv = v && v.startsWith('R-') ? v.substring(2) : v;
+                        html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
+                    }
+                }
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
         });
-        html += '</tbody></table></div>';
+
+        html += '</div>'; // fine pagina flex
     });
-    
+
     html += '</div>';
     
     // Crea elemento
@@ -5648,8 +5657,8 @@ function exportToPDF(){
     const opt = {
         margin: [10, 10, 10, 10], // top, right, bottom, left in mm (1cm)
         filename: fileName + '.pdf',
-        image: { type: 'jpeg', quality: 0.75 },
-        html2canvas: { scale: 1.5, useCORS: true, logging: false },
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 3, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true }
     };
     
