@@ -2406,6 +2406,37 @@ body.user-mode #dashboardTable th{
     zoom: 1;
 }
 
+/* Badge immagine utente — in alto a destra */
+.floating-badge {
+    position: fixed;
+    top: 60px;
+    right: 16px;
+    z-index: 996;
+    width: 110px;
+    height: 110px;
+    border-radius: 12px;
+    object-fit: cover;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    opacity: 0.92;
+    transition: all 0.3s ease;
+    cursor: default;
+    zoom: 1;
+}
+.floating-badge:hover {
+    opacity: 1;
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.28);
+}
+[data-theme="dark"] .floating-badge {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+@media screen and (max-width: 1100px), screen and (max-height: 700px) {
+    .floating-badge { display: none !important; }
+}
+@media (max-width: 768px) {
+    .floating-badge { display: none !important; }
+}
+
 /* Nasconde la mascotte quando la finestra è ridotta (zoom browser alto o schermo piccolo) */
 @media screen and (max-width: 1100px), screen and (max-height: 700px) {
     .floating-gatta {
@@ -5686,7 +5717,9 @@ async function loadUsersFromFirebase() {
                 mascotte:      userData.mascotte      || null,
                 mascotteTitle: userData.mascotteTitle || null,
                 allianz:       userData.allianz       === true || userData.allianz === 'true',
-                areaPapyrus:   userData.areaPapyrus   === true || userData.areaPapyrus === 'true'
+                areaPapyrus:   userData.areaPapyrus   === true || userData.areaPapyrus === 'true',
+                badge:         userData.badge         === true || userData.badge === 'true',
+                badgeImage:    userData.badgeImage    || null
             };
             users.push(cognome);
         }
@@ -5802,6 +5835,9 @@ window.initApp = async function() {
 
 <!-- Floating mascotte personalizzata per utente -->
 <img id="floatingGatta" src="" alt="Mascotte" class="floating-gatta" style="display:none;">
+
+<!-- Badge immagine utente in alto a destra -->
+<img id="floatingBadge" src="" alt="Badge" class="floating-badge" style="display:none;">
   
 
 <script>
@@ -6364,6 +6400,18 @@ function applyUserPermissions() {
         }
     }
 
+    // Badge immagine in alto a destra — solo se badge=true e badgeImage valorizzato
+    const floatingBadge = document.getElementById('floatingBadge');
+    if (floatingBadge && currentUser && usersConfig[currentUser]) {
+        const hasBadge   = usersConfig[currentUser].badge;
+        const badgeImage = usersConfig[currentUser].badgeImage;
+        if (hasBadge && badgeImage) {
+            floatingBadge.src   = badgeImage;
+            floatingBadge.style.display = 'block';
+        } else {
+            floatingBadge.style.display = 'none';
+        }
+    }
 }
 
 
