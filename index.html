@@ -1425,53 +1425,80 @@ td.segnaposto-cell:hover { background: linear-gradient(135deg, #a7f3d0 60%, #6ee
 }
 [data-theme="dark"] td.segnaposto-cell:hover { background: linear-gradient(135deg, #065f46 60%, #047857) !important; }
 
-/* ── Bottone Segnaposto (stile Uiverse, border-radius come gli altri) ── */
+/* ── Bottone Segnaposto (stesso stile di insert-holidays-btn, colori verdi) ── */
 .btn-segnaposto {
-    font-size: 12px;
-    padding: 0 1.4em;
-    font-weight: 600;
-    background: #1f2937;
-    color: white;
-    border: none;
-    position: relative;
-    overflow: hidden;
-    border-radius: 5rem;
-    cursor: pointer;
-    transition: transform 0.1s;
-    letter-spacing: 1px;
-    height: 3rem;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    width: 13rem;
+    height: 3rem;
+    overflow: hidden;
+    background-size: 300% 300%;
+    cursor: pointer;
+    backdrop-filter: blur(1rem);
+    border-radius: 5rem;
+    transition: 0.5s;
+    animation: gradient_segnaposto 5s ease infinite;
+    border: double 4px transparent;
+    background-image: linear-gradient(#052e16, #052e16),
+        linear-gradient(137.48deg, #6ee7b7 10%, #10b981 45%, #059669 67%, #052e16 87%);
+    background-origin: border-box;
+    background-clip: content-box, border-box;
+    position: relative;
     flex-shrink: 0;
 }
-.btn-segnaposto:active { transform: scale(0.97); }
-.btn-segnaposto .sg-gradient {
+.btn-segnaposto:hover { transform: scale(1.1); }
+.btn-segnaposto:active {
+    border: double 4px #10b981;
+    background-origin: border-box;
+    background-clip: content-box, border-box;
+    animation: none;
+}
+.btn-segnaposto .sg-stars-container {
     position: absolute;
+    z-index: -1;
     width: 100%; height: 100%;
-    left: 0; top: 0;
+    overflow: hidden;
+    transition: 0.5s;
+    backdrop-filter: blur(1rem);
     border-radius: 5rem;
-    margin-top: -0.25em;
-    background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0), rgba(0,0,0,0.3));
-    pointer-events: none;
 }
-.btn-segnaposto .sg-label {
-    position: relative;
-    top: -1px;
-    z-index: 2;
+.btn-segnaposto:hover .sg-stars-container {
+    z-index: 1;
+    background-color: #052e16;
 }
-.btn-segnaposto .sg-transition {
-    transition-timing-function: cubic-bezier(0,0,0.2,1);
-    transition-duration: 500ms;
-    background-color: rgba(16,185,129,0.6);
-    border-radius: 9999px;
-    width: 0; height: 0;
+.btn-segnaposto .sg-glow {
     position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%,-50%);
-    pointer-events: none;
+    display: flex;
+    width: 10rem;
 }
-.btn-segnaposto:hover .sg-transition { width: 14em; height: 14em; }
+.btn-segnaposto .sg-glow-circle {
+    width: 100%; height: 30px;
+    filter: blur(2rem);
+    animation: pulse_glow_sg 4s infinite;
+    z-index: -1;
+}
+.btn-segnaposto .sg-glow-circle:nth-of-type(1) { background: rgba(16,185,129,0.6); }
+.btn-segnaposto .sg-glow-circle:nth-of-type(2) { background: rgba(5,150,105,0.7); }
+.btn-segnaposto:active .sg-glow-circle { background: #10b981; }
+.btn-segnaposto .sg-label {
+    z-index: 2;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #ffffff;
+    text-shadow: 0 0 4px white;
+    position: relative;
+}
+@keyframes gradient_segnaposto {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes pulse_glow_sg {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+}
 @media (max-width: 768px) { .btn-segnaposto { display: none !important; } }
 
 /* ================= MODALE ================= */
@@ -2706,8 +2733,8 @@ body.user-mode #dashboardTable th{
         <span class="btn-text">INSERISCI FERIE</span>
     </button>
     <button id="insertSegnapostoBtn" class="btn-segnaposto" onclick="openSegnapostoModal()">
-        <span class="sg-transition"></span>
-        <span class="sg-gradient"></span>
+        <div class="sg-stars-container"><div class="btn-stars"></div></div>
+        <div class="sg-glow"><div class="sg-glow-circle"></div><div class="sg-glow-circle"></div></div>
         <span class="sg-label">INSERISCI SEGNAPOSTO</span>
     </button>
     <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
@@ -2992,7 +3019,7 @@ body.user-mode #dashboardTable th{
 
     <div class="modal-section">
         <div class="modal-section-title">Data Inizio</div>
-        <input type="date" id="sgStart"
+        <input type="date" id="sgStart" onchange="syncSgEnd()"
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #10b981;border-radius:8px;font-size:14px;margin-top:6px;">
     </div>
 
@@ -3003,8 +3030,8 @@ body.user-mode #dashboardTable th{
     </div>
 
     <button class="btn-full-day" onclick="applySegnaposto()"
-            style="margin-top:14px;background:linear-gradient(135deg,#059669,#10b981);border:none;">
-        Applica Segnaposto
+            style="margin-top:14px;background:#059669;color:#ffffff;border:none;font-weight:700;letter-spacing:1px;">
+        ✅ Applica Segnaposto
     </button>
 
     <div class="modal-footer">
@@ -3015,7 +3042,7 @@ body.user-mode #dashboardTable th{
 
 <div id="allianzModal" class="modal-overlay" onclick="closeAllianzModal()">
   <div class="modal-panel" onclick="event.stopPropagation()">
-    <div class="modal-title">🔧 Inserisci Release Allianz</div>
+    <div class="modal-title">🔧 Inserisci Release</div>
     <div class="modal-subtitle">Il valore verrà applicato a tutti gli utenti Area Papyrus</div>
 
     <div class="modal-section">
@@ -5131,7 +5158,15 @@ function openSegnapostoModal(){
     document.getElementById('sgAbbr').value  = '';
     document.getElementById('sgStart').value = today;
     document.getElementById('sgEnd').value   = today;
+    document.getElementById('sgEnd').min     = today;
     document.getElementById('segnapostoModal').style.display = 'flex';
+}
+
+function syncSgEnd(){
+    const s = document.getElementById('sgStart').value;
+    const e = document.getElementById('sgEnd');
+    if(!e.value || e.value < s) e.value = s;
+    e.min = s;
 }
 
 function closeSegnapostoModal(){
@@ -5144,6 +5179,10 @@ async function applySegnaposto(){
     const start = document.getElementById('sgStart').value;
     const end   = document.getElementById('sgEnd').value;
 
+    if(!nome && !abbr){
+        alert('Inserisci il nome e l\'abbreviativo del segnaposto.');
+        return;
+    }
     if(!nome){  alert('Inserisci un nome per il segnaposto.'); return; }
     if(!abbr){  alert('Inserisci un abbreviativo (max 2 caratteri).'); return; }
     if(!start){ alert('Seleziona una data di inizio.'); return; }
