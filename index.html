@@ -1430,7 +1430,7 @@ td.segnaposto-cell:hover { background: linear-gradient(135deg, #ddd6fe 60%, #c4b
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 13rem;
+    width: 11rem;
     height: 3rem;
     overflow: hidden;
     background-size: 300% 300%;
@@ -2748,15 +2748,15 @@ body.user-mode #dashboardTable th{
 
 <!-- Bottoni azione dentro sticky-nav -->
 <div style="display:flex;justify-content:center;align-items:center;gap:10px;padding:6px 0 2px;flex-wrap:wrap;">
+     <button id="insertSegnapostoBtn" class="btn-segnaposto" onclick="openSegnapostoModal()">
+        <div class="sg-stars-container"><div class="btn-stars"></div></div>
+        <div class="sg-glow"><div class="sg-glow-circle"></div><div class="sg-glow-circle"></div></div>
+        <span class="btn-text">INSERISCI EVENTO</span>
+    </button>
     <button id="insertHolidaysBtn" class="insert-holidays-btn" onclick="openRangeModal()">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
         <span class="btn-text">INSERISCI FERIE</span>
-    </button>
-    <button id="insertSegnapostoBtn" class="btn-segnaposto" onclick="openSegnapostoModal()">
-        <div class="sg-stars-container"><div class="btn-stars"></div></div>
-        <div class="sg-glow"><div class="sg-glow-circle"></div><div class="sg-glow-circle"></div></div>
-        <span class="btn-text">INSERISCI EVENTO</span>
     </button>
     <button id="insertAllianzBtn" class="insert-holidays-btn insert-allianz-btn" onclick="openAllianzModal()" style="display:none;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
