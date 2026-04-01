@@ -1410,6 +1410,70 @@ td.santo-patrono:hover { background: #fde8c8; }
 [data-theme="dark"] td.santo-patrono{background:#3b2a14;color:#fbbf24}
 [data-theme="dark"] td.santo-patrono:hover{background:#4a3520}
 
+/* ── Segnaposto cella ── */
+td.segnaposto-cell {
+    background: linear-gradient(135deg, #d1fae5 60%, #a7f3d0) !important;
+    color: #065f46 !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    cursor: pointer;
+}
+td.segnaposto-cell:hover { background: linear-gradient(135deg, #a7f3d0 60%, #6ee7b7) !important; }
+[data-theme="dark"] td.segnaposto-cell {
+    background: linear-gradient(135deg, #064e3b 60%, #065f46) !important;
+    color: #6ee7b7 !important;
+}
+[data-theme="dark"] td.segnaposto-cell:hover { background: linear-gradient(135deg, #065f46 60%, #047857) !important; }
+
+/* ── Bottone Segnaposto (stile Uiverse, border-radius come gli altri) ── */
+.btn-segnaposto {
+    font-size: 12px;
+    padding: 0 1.4em;
+    font-weight: 600;
+    background: #1f2937;
+    color: white;
+    border: none;
+    position: relative;
+    overflow: hidden;
+    border-radius: 5rem;
+    cursor: pointer;
+    transition: transform 0.1s;
+    letter-spacing: 1px;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.btn-segnaposto:active { transform: scale(0.97); }
+.btn-segnaposto .sg-gradient {
+    position: absolute;
+    width: 100%; height: 100%;
+    left: 0; top: 0;
+    border-radius: 5rem;
+    margin-top: -0.25em;
+    background-image: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0), rgba(0,0,0,0.3));
+    pointer-events: none;
+}
+.btn-segnaposto .sg-label {
+    position: relative;
+    top: -1px;
+    z-index: 2;
+}
+.btn-segnaposto .sg-transition {
+    transition-timing-function: cubic-bezier(0,0,0.2,1);
+    transition-duration: 500ms;
+    background-color: rgba(16,185,129,0.6);
+    border-radius: 9999px;
+    width: 0; height: 0;
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%,-50%);
+    pointer-events: none;
+}
+.btn-segnaposto:hover .sg-transition { width: 14em; height: 14em; }
+@media (max-width: 768px) { .btn-segnaposto { display: none !important; } }
+
 /* ================= MODALE ================= */
 .modal-overlay{
     position:fixed;
@@ -2641,6 +2705,11 @@ body.user-mode #dashboardTable th{
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
         <span class="btn-text">INSERISCI FERIE</span>
     </button>
+    <button id="insertSegnapostoBtn" class="btn-segnaposto" onclick="openSegnapostoModal()">
+        <span class="sg-transition"></span>
+        <span class="sg-gradient"></span>
+        <span class="sg-label">INSERISCI SEGNAPOSTO</span>
+    </button>
     <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
@@ -2903,6 +2972,47 @@ body.user-mode #dashboardTable th{
 </div>
 
 <!-- MODALE RELEASE ALLIANZ -->
+<!-- MODAL SEGNAPOSTO -->
+<div id="segnapostoModal" class="modal-overlay" onclick="closeSegnapostoModal()">
+  <div class="modal-panel" onclick="event.stopPropagation()">
+    <div class="modal-title">📌 Inserisci Segnaposto</div>
+    <div class="modal-subtitle">Visibile solo per te, non influenza i contatori</div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Nome Segnaposto</div>
+        <input type="text" id="sgNome" placeholder="Es. Corso formazione"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #10b981;border-radius:8px;font-size:14px;margin-top:6px;">
+    </div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Abbreviativo <span style="color:#6b7280;font-size:12px;">(max 2 caratteri)</span></div>
+        <input type="text" id="sgAbbr" placeholder="Es. CF" maxlength="2"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #10b981;border-radius:8px;font-size:14px;margin-top:6px;text-transform:uppercase;">
+    </div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Data Inizio</div>
+        <input type="date" id="sgStart"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #10b981;border-radius:8px;font-size:14px;margin-top:6px;">
+    </div>
+
+    <div class="modal-section">
+        <div class="modal-section-title">Data Fine</div>
+        <input type="date" id="sgEnd"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #10b981;border-radius:8px;font-size:14px;margin-top:6px;">
+    </div>
+
+    <button class="btn-full-day" onclick="applySegnaposto()"
+            style="margin-top:14px;background:linear-gradient(135deg,#059669,#10b981);border:none;">
+        Applica Segnaposto
+    </button>
+
+    <div class="modal-footer">
+        <button class="cancel-btn" onclick="closeSegnapostoModal()">Annulla</button>
+    </div>
+  </div>
+</div>
+
 <div id="allianzModal" class="modal-overlay" onclick="closeAllianzModal()">
   <div class="modal-panel" onclick="event.stopPropagation()">
     <div class="modal-title">🔧 Inserisci Release Allianz</div>
@@ -3180,7 +3290,7 @@ function updateCellVisualState(td, value, rangeLabel){
     if(!td) return;
     td.textContent = "";
     td.innerHTML = "";
-    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell','preprod-cell','multi-permit','santo-patrono');
+    td.classList.remove('full-day','morning-partial','afternoon-partial','presidio-cell','preprod-cell','segnaposto-cell','multi-permit','santo-patrono');
     td.removeAttribute('data-range');
 
     const isSaturday = td.dataset && td.dataset.saturday === 'true';
@@ -3222,10 +3332,17 @@ function updateCellVisualState(td, value, rangeLabel){
         if(v === '8') td.classList.add('full-day');
         else if(v === 'PP'){ td.classList.add('preprod-cell'); td.setAttribute('data-range','Pre-Produzione'); }
         else if(String(v).startsWith('R-')) td.classList.add('presidio-cell');
+        else if(String(v).startsWith('SG:')){
+            td.classList.add('segnaposto-cell');
+            const sgParts = String(v).substring(3).split(':');
+            td.textContent = sgParts[0] || 'SG';
+            const sgNome = sgParts.slice(1).join(':') || sgParts[0];
+            td.setAttribute('data-range', sgNome);
+        }
         else if(String(v).endsWith('M')) td.classList.add('morning-partial');
         else if(String(v).endsWith('P')) td.classList.add('afternoon-partial');
         const rl = ranges[0] || rangeLabel;
-        if(rl && v !== 'PP') td.setAttribute('data-range', rl);
+        if(rl && v !== 'PP' && !String(v).startsWith('SG:')) td.setAttribute('data-range', rl);
     }
 }
 
@@ -3246,6 +3363,7 @@ let lastClickedCell = null;
 const parseHours=v=>{
     if(!v) return 0;
     if(v.startsWith && v.startsWith('R-')) return 0;
+    if(v.startsWith && v.startsWith('SG:')) return 0; // segnaposto — non conta
     if(v==='8') return 8;
     // Array JSON di permessi multipli
     try {
@@ -3881,6 +3999,7 @@ function renderPlanner(){
                     if(v==="8") cls+=" full-day";
                     else if(v === 'PP') cls+=" preprod-cell";
                     else if(v && v.startsWith('R-')) cls+=" presidio-cell";
+                    else if(v && v.startsWith('SG:')) cls+=" segnaposto-cell";
                     else if(permits.length > 1){
                         cls += " multi-permit";
                     } else if(v.endsWith("M")) cls+=" morning-partial";
@@ -3892,6 +4011,12 @@ function renderPlanner(){
                     if(v === 'PP'){
                         displayV = 'PP';
                         rangeAttr = ` data-range="Pre-Produzione"`;
+                    } else if(v && v.startsWith('SG:')){
+                        // formato SG:{abbr}:{nomeCompleto}
+                        const sgParts = v.substring(3).split(':');
+                        displayV = sgParts[0] || 'SG';
+                        const sgNome = sgParts.slice(1).join(':') || sgParts[0];
+                        rangeAttr = ` data-range="${sgNome}"`;
                     } else if(v && v.startsWith('R-')){
                         displayV = v.substring(2);
                         rangeAttr = ` title="Release Allianz: ${v.substring(2)}"`;
@@ -4508,6 +4633,17 @@ function openModal(td,key,day,month,isSaturday){
         tag.innerHTML = `Pre-Produzione inserita <span onclick="removePPFromModal()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
         existingList.appendChild(tag);
         existingBox.style.display = 'block';
+    } else if(!isSaturday && rawVal && rawVal.startsWith('SG:')){
+        // Segnaposto
+        existingList.innerHTML = '';
+        const sgParts = rawVal.substring(3).split(':');
+        const sgAbbr  = sgParts[0] || 'SG';
+        const sgNome  = sgParts.slice(1).join(':') || sgAbbr;
+        const tag = document.createElement('div');
+        tag.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;background:#d1fae5;color:#065f46;`;
+        tag.innerHTML = `Segnaposto: ${sgNome} <span onclick="removeSegnapostoFromModal()" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.8;" title="Rimuovi">×</span>`;
+        existingList.appendChild(tag);
+        existingBox.style.display = 'block';
     } else {
         existingBox.style.display = 'none';
     }
@@ -4518,6 +4654,21 @@ function openModal(td,key,day,month,isSaturday){
 function closeModal(){
     document.getElementById("modal").style.display="none";
     activeCell=null;
+}
+
+// Rimozione segnaposto dalla modale — solo utente corrente
+async function removeSegnapostoFromModal(){
+    if(!activeCell || !activeCell.key) return;
+    const key = activeCell.key;
+    activeCell = null;
+    closeModal();
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    try {
+        await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${currentYear}/${key}`));
+        delete dataCache[key];
+        render();
+    } catch(e){ console.error('Errore rimozione segnaposto:', e); }
+    document.getElementById('loadingOverlay').style.display = 'none';
 }
 
 // Rimozione PP direttamente dal tag nella modale ferie (senza aprire un'altra modale)
@@ -4970,6 +5121,69 @@ function syncAllianzEnd(){
     const e = document.getElementById('allianzEnd');
     if(!e.value || e.value < s) e.value = s;
     e.min = s;
+}
+
+// ================= SEGNAPOSTO =================
+
+function openSegnapostoModal(){
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('sgNome').value  = '';
+    document.getElementById('sgAbbr').value  = '';
+    document.getElementById('sgStart').value = today;
+    document.getElementById('sgEnd').value   = today;
+    document.getElementById('segnapostoModal').style.display = 'flex';
+}
+
+function closeSegnapostoModal(){
+    document.getElementById('segnapostoModal').style.display = 'none';
+}
+
+async function applySegnaposto(){
+    const nome  = document.getElementById('sgNome').value.trim();
+    const abbr  = document.getElementById('sgAbbr').value.trim().toUpperCase().substring(0, 2);
+    const start = document.getElementById('sgStart').value;
+    const end   = document.getElementById('sgEnd').value;
+
+    if(!nome){  alert('Inserisci un nome per il segnaposto.'); return; }
+    if(!abbr){  alert('Inserisci un abbreviativo (max 2 caratteri).'); return; }
+    if(!start){ alert('Seleziona una data di inizio.'); return; }
+    if(!end){   alert('Seleziona una data di fine.'); return; }
+
+    const startDate = new Date(start);
+    const endDate   = new Date(end);
+    if(startDate > endDate){ alert('La data di inizio deve essere precedente alla data di fine.'); return; }
+
+    // valore Firebase: SG:{abbr}:{nomeCompleto}
+    const sgValue = `SG:${abbr}:${nome}`;
+
+    closeSegnapostoModal();
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    try {
+        let cur = new Date(startDate);
+        while(cur <= endDate){
+            const wd = cur.getDay();
+            if(wd !== 0){ // salta domeniche
+                const y  = cur.getFullYear();
+                const mo = cur.getMonth();
+                const d  = cur.getDate();
+                const key = `${currentUser}-${y}-${mo + 1}-${d}`;
+                const existing = dataCache[key] || '';
+                // Non sovrascrivere ferie/permessi esistenti
+                if(!existing || existing.startsWith('SG:')){
+                    await setFirebaseValue(key, sgValue);
+                    dataCache[key] = sgValue;
+                }
+            }
+            cur.setDate(cur.getDate() + 1);
+        }
+        render();
+        document.getElementById('loadingOverlay').style.display = 'none';
+    } catch(err){
+        console.error('Errore inserimento segnaposto:', err);
+        document.getElementById('loadingOverlay').style.display = 'none';
+        alert('Errore durante l\'inserimento. Riprova.');
+    }
 }
 
 function closeAllianzModal(){
@@ -5632,9 +5846,12 @@ function exportToPDF(){
                         if(v === '8'){ bg = '#fca5a5'; tc = '#7f1d1d'; }
                         else if(v === 'PP'){ bg = '#1e40af'; tc = '#fff'; }
                         else if(v && v.startsWith('R-')){ bg = '#1e40af'; tc = '#fff'; }
+                        else if(v && v.startsWith('SG:')){ bg = '#d1fae5'; tc = '#065f46'; }
                         else if(v.endsWith && v.endsWith('M')){ bg = '#93c5fd'; tc = '#1e3a8a'; }
                         else if(v.endsWith && v.endsWith('P')){ bg = '#c4b5fd'; tc = '#4c1d95'; }
-                        const dv = v && v.startsWith('R-') ? v.substring(2) : v;
+                        let dv = v && v.startsWith('R-') ? v.substring(2)
+                               : v && v.startsWith('SG:') ? v.substring(3).split(':')[0]
+                               : v;
                         html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
                     }
                 }
