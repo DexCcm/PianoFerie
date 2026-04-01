@@ -1430,7 +1430,7 @@ td.segnaposto-cell:hover { background: linear-gradient(135deg, #ddd6fe 60%, #c4b
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 13rem;
+    width: 11rem;
     height: 3rem;
     overflow: hidden;
     background-size: 300% 300%;
@@ -1483,7 +1483,7 @@ td.segnaposto-cell:hover { background: linear-gradient(135deg, #ddd6fe 60%, #c4b
 .btn-segnaposto:active .sg-glow-circle { background: #a78bfa; }
 .btn-segnaposto .sg-label {
     z-index: 2;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
     color: #ffffff;
@@ -1763,7 +1763,29 @@ td.segnaposto-cell:hover { background: linear-gradient(135deg, #ddd6fe 60%, #c4b
     background:#173B54;
     color:#f1f5f9;
 }
-
+/* ── INSERISCI RELEASE BUTTON── colore #225778 */
+.insert-allianz-btn {
+    background-image: linear-gradient(#0c2d3f, #0c2d3f),
+        linear-gradient(137.48deg, #7dd3fc 10%, #38bdf8 45%, #0284c7 67%, #225778 87%);
+    animation: gradient_allianz 5s ease infinite;
+}
+#insertAllianzBtn:active {
+    border: double 4px #38bdf8;
+}
+.insert-allianz-btn:hover .btn-stars-container {
+    background-color: #0c2d3f;
+}
+.insert-allianz-btn .glow-circle:nth-of-type(1) {
+    background: rgba(56, 189, 248, 0.6);
+}
+.insert-allianz-btn .glow-circle:nth-of-type(2) {
+    background: rgba(2, 132, 199, 0.7);
+}
+@keyframes gradient_allianz {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
 /* ================= INSERISCI FERIE BUTTON ================= */
 .insert-holidays-btn {
     display: flex;
@@ -1816,7 +1838,7 @@ td.segnaposto-cell:hover { background: linear-gradient(135deg, #ddd6fe 60%, #c4b
 
 .btn-text {
     z-index: 2;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 2px;
     color: #ffffff;
@@ -2735,12 +2757,12 @@ body.user-mode #dashboardTable th{
     <button id="insertSegnapostoBtn" class="btn-segnaposto" onclick="openSegnapostoModal()">
         <div class="sg-stars-container"><div class="btn-stars"></div></div>
         <div class="sg-glow"><div class="sg-glow-circle"></div><div class="sg-glow-circle"></div></div>
-        <span class="sg-label">INSERISCI EVENTO</span>
+        <span class="btn-text">INSERISCI EVENTO</span>
     </button>
-    <button id="insertAllianzBtn" class="insert-holidays-btn" onclick="openAllianzModal()" style="display:none;">
+    <button id="insertAllianzBtn" class="insert-holidays-btn insert-allianz-btn" onclick="openAllianzModal()" style="display:none;">
         <div class="btn-stars-container"><div class="btn-stars"></div></div>
         <div class="btn-glow"><div class="glow-circle"></div><div class="glow-circle"></div></div>
-        <span class="btn-text">INSERISCI RELEASE ALLIANZ</span>
+        <span class="btn-text">INSERISCI RELEASE </span>
     </button>
 </div>
 
@@ -3002,7 +3024,7 @@ body.user-mode #dashboardTable th{
 <!-- MODAL SEGNAPOSTO -->
 <div id="segnapostoModal" class="modal-overlay" onclick="closeSegnapostoModal()">
   <div class="modal-panel" onclick="event.stopPropagation()">
-    <div class="modal-title">📌 Inserisci Evento</div>
+    <div class="modal-title">Inserisci Evento</div>
     <div class="modal-subtitle">Visibile solo per te · non influenza i contatori ferie</div>
 
     <div class="modal-section">
@@ -3042,7 +3064,7 @@ body.user-mode #dashboardTable th{
 
 <div id="allianzModal" class="modal-overlay" onclick="closeAllianzModal()">
   <div class="modal-panel" onclick="event.stopPropagation()">
-    <div class="modal-title">🔧 Inserisci Release Allianz</div>
+    <div class="modal-title">Inserisci Release Allianz</div>
     <div class="modal-subtitle">Il valore verrà applicato a tutti gli utenti Area Papyrus</div>
 
     <div class="modal-section">
