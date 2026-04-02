@@ -1372,7 +1372,7 @@ td.editable{cursor:pointer}
 td.editable:hover{background:var(--hover-bg)}
 td.full-day{background:#ffd6d6;color:#b30000;font-weight:600}
 td.morning-partial{background:#d6ecff;color:#0b5ed7;font-weight:600}
-td.afternoon-partial{background:#FDD0BF;color:#7c2d12;font-weight:600}
+td.afternoon-partial{background:#F79169;color:#7c2d12;font-weight:600}
 
 /* Cella con permessi multipli */
 td.multi-permit {
@@ -3072,7 +3072,13 @@ body.user-mode #dashboardTable th{
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
     </div>
 
-    <div class="modal-section">
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);">
+        <div class="modal-section-title" style="margin-bottom:8px;">Scegli la data di PreProd</div>
+        <input type="date" id="allianzPreProd"
+               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;">
+    </div>
+
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);">
         <div class="modal-section-title">Data Inizio</div>
         <input type="date" id="allianzStart" onchange="syncAllianzEnd()"
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
@@ -3082,12 +3088,6 @@ body.user-mode #dashboardTable th{
         <div class="modal-section-title">Data Fine</div>
         <input type="date" id="allianzEnd"
                style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;margin-top:6px;">
-    </div>
-
-    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-color);">
-        <div class="modal-section-title" style="margin-bottom:8px;">Scegli la data di PreProd</div>
-        <input type="date" id="allianzPreProd"
-               style="width:100%;box-sizing:border-box;padding:10px;border:2px solid #3b82f6;border-radius:8px;font-size:14px;">
     </div>
 
     <button class="btn-full-day" onclick="applyRangeAllianz()" style="margin-top:12px;">Applica Release</button>
@@ -5898,7 +5898,7 @@ function exportToPDF(){
                         else if(v && v.startsWith('R-')){ bg = '#1e40af'; tc = '#fff'; }
                         else if(v && v.startsWith('SG:')){ bg = '#ede9fe'; tc = '#3F2278'; }
                         else if(v.endsWith && v.endsWith('M')){ bg = '#93c5fd'; tc = '#1e3a8a'; }
-                        else if(v.endsWith && v.endsWith('P')){ bg = '#FDD0BF'; tc = '#7c2d12'; }
+                        else if(v.endsWith && v.endsWith('P')){ bg = '#F79169'; tc = '#7c2d12'; }
                         let dv = v && v.startsWith('R-') ? v.substring(2)
                                : v && v.startsWith('SG:') ? v.substring(3).split(':')[0]
                                : v;
