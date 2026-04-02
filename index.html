@@ -1372,7 +1372,7 @@ td.editable{cursor:pointer}
 td.editable:hover{background:var(--hover-bg)}
 td.full-day{background:#ffd6d6;color:#b30000;font-weight:600}
 td.morning-partial{background:#d6ecff;color:#0b5ed7;font-weight:600}
-td.afternoon-partial{background:#F9A380;color:#7c2d12;font-weight:600}
+td.afternoon-partial{background:#FAAD8E;color:#7c2d12;font-weight:600}
 
 /* Cella con permessi multipli */
 td.multi-permit {
@@ -5898,7 +5898,7 @@ function exportToPDF(){
                         else if(v && v.startsWith('R-')){ bg = '#1e40af'; tc = '#fff'; }
                         else if(v && v.startsWith('SG:')){ bg = '#ede9fe'; tc = '#3F2278'; }
                         else if(v.endsWith && v.endsWith('M')){ bg = '#93c5fd'; tc = '#1e3a8a'; }
-                        else if(v.endsWith && v.endsWith('P')){ bg = '#F9A380'; tc = '#7c2d12'; }
+                        else if(v.endsWith && v.endsWith('P')){ bg = '#FAAD8E'; tc = '#7c2d12'; }
                         let dv = v && v.startsWith('R-') ? v.substring(2)
                                : v && v.startsWith('SG:') ? v.substring(3).split(':')[0]
                                : v;
