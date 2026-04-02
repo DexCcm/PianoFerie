@@ -1372,7 +1372,7 @@ td.editable{cursor:pointer}
 td.editable:hover{background:var(--hover-bg)}
 td.full-day{background:#ffd6d6;color:#b30000;font-weight:600}
 td.morning-partial{background:#d6ecff;color:#0b5ed7;font-weight:600}
-td.afternoon-partial{background:#e6dbff;color:#4b2dbf;font-weight:600}
+td.afternoon-partial{background:#F79169;color:#7c2d12;font-weight:600}
 
 /* Cella con permessi multipli */
 td.multi-permit {
@@ -1390,7 +1390,7 @@ td.multi-permit .mp-line {
     text-overflow: clip;
 }
 td.multi-permit .mp-line.mp-M { color: #0b5ed7; }
-td.multi-permit .mp-line.mp-P { color: #4b2dbf; }
+td.multi-permit .mp-line.mp-P { color: #7c2d12; }
 
 /* Santo Patrono Marnate */
 td.santo-patrono {
@@ -1403,10 +1403,10 @@ td.santo-patrono:hover { background: #fde8c8; }
 
 [data-theme="dark"] td.full-day{background:#7f1d1d;color:#fca5a5}
 [data-theme="dark"] td.morning-partial{background:#1e3a8a;color:#93c5fd}
-[data-theme="dark"] td.afternoon-partial{background:#4c1d95;color:#c4b5fd}
+[data-theme="dark"] td.afternoon-partial{background:#7c2d12;color:#ffedd5}
 [data-theme="dark"] td.multi-permit{background:linear-gradient(135deg,#1e3a8a 50%,#4c1d95 50%)}
 [data-theme="dark"] td.multi-permit .mp-line.mp-M{color:#93c5fd}
-[data-theme="dark"] td.multi-permit .mp-line.mp-P{color:#c4b5fd}
+[data-theme="dark"] td.multi-permit .mp-line.mp-P{color:#ffedd5}
 [data-theme="dark"] td.santo-patrono{background:#3b2a14;color:#fbbf24}
 [data-theme="dark"] td.santo-patrono:hover{background:#4a3520}
 
@@ -3165,16 +3165,6 @@ body.user-mode #dashboardTable th{
             
             <!-- Footer Actions -->
             <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;">
-                <button onclick="exportUserAnalysisPDF()" style="
-                    padding:14px 28px;
-                    background:#3b82f6;
-                    color:white;
-                    border:none;
-                    border-radius:8px;
-                    cursor:pointer;
-                    font-weight:600;
-                    font-size:15px;
-                ">📄 Esporta Report PDF</button>
                 <button onclick="closeUserAnalysis()" style="
                     padding:14px 28px;
                     background:#6b7280;
@@ -4656,7 +4646,7 @@ function openModal(td,key,day,month,isSaturday){
                     display:inline-flex;align-items:center;gap:6px;
                     padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;
                     background:${String(p).endsWith('M') ? '#d6ecff' : '#e6dbff'};
-                    color:${String(p).endsWith('M') ? '#0b5ed7' : '#4b2dbf'};
+                    color:${String(p).endsWith('M') ? '#0b5ed7' : '#7c2d12'};
                 `;
                 const label = p.replace(' M','M').replace(' P','P') + (ranges[i] ? ` (${ranges[i]})` : '');
                 tag.innerHTML = `${label} <span onclick="removePermit(${i})" style="cursor:pointer;margin-left:2px;font-size:14px;line-height:1;opacity:0.7;" title="Rimuovi">×</span>`;
@@ -5908,7 +5898,7 @@ function exportToPDF(){
                         else if(v && v.startsWith('R-')){ bg = '#1e40af'; tc = '#fff'; }
                         else if(v && v.startsWith('SG:')){ bg = '#ede9fe'; tc = '#3F2278'; }
                         else if(v.endsWith && v.endsWith('M')){ bg = '#93c5fd'; tc = '#1e3a8a'; }
-                        else if(v.endsWith && v.endsWith('P')){ bg = '#c4b5fd'; tc = '#4c1d95'; }
+                        else if(v.endsWith && v.endsWith('P')){ bg = '#F79169'; tc = '#7c2d12'; }
                         let dv = v && v.startsWith('R-') ? v.substring(2)
                                : v && v.startsWith('SG:') ? v.substring(3).split(':')[0]
                                : v;
