@@ -5851,17 +5851,17 @@ function exportToPDF(){
         if(pageIdx > 0){
             html += '<div style="page-break-before:always;"></div>';
         }
-        // Contenitore pagina: flex column, 3 tabelle allineate in alto senza espansione
-        html += '<div style="display:flex;flex-direction:column;justify-content:flex-start;gap:3mm;">';
+        // Contenitore pagina: flex column, distribuisce le 3 tabelle uniformemente
+        html += '<div style="display:flex;flex-direction:column;justify-content:space-between;min-height:180mm;gap:4mm;">';
 
         pageMeses.forEach(mi => {
             const m = months[mi];
-            html += '<div style="flex:0 0 auto;">';
+            html += '<div style="flex:1;">';
             html += '<div style="background:#dbeafe;color:#172754;font-size:9px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:2px solid #172754;border:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
             html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
             html += '<thead>';
             // Riga giorni settimana
-            html += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0 2px;font-weight:bold;font-size:7px;width:65px;height:12px;line-height:1;vertical-align:middle;text-align:left;">Utente</th>';
+            html += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0 2px;font-weight:bold;font-size:7px;width:40px;height:12px;line-height:1;vertical-align:middle;text-align:left;">Utente</th>';
             for(let d = 1; d <= m.d; d++){
                 const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
                 html += '<th style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:7px;height:12px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
@@ -5875,7 +5875,7 @@ function exportToPDF(){
             html += '</tr></thead><tbody>';
 
             users.forEach(u => {
-                const userName = u.toUpperCase();
+                const userName = (u.length > 10 ? u.substring(0,9) : u).toUpperCase();
                 const rh = 'height:13px;';
                 const cs = 'border:1px solid #aaa;padding:0;text-align:center;font-weight:bold;font-size:8px;' + rh + 'line-height:1;vertical-align:middle;';
                 html += '<tr><td style="font-weight:bold;text-align:left;background:#f1f5f9;border:1px solid #aaa;padding:0 2px;font-size:8px;' + rh + 'line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
