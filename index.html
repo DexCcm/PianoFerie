@@ -17,7 +17,7 @@
 <!-- Firebase SDK v9+ (modular) -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-  import { getDatabase, ref, set, get, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+  import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
   import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
 
   const firebaseConfig = {
@@ -39,8 +39,7 @@
     set: set,
     get: get,
     onValue: onValue,
-    remove: remove,
-    update: (refObj, data) => update(refObj, data)
+    remove: remove
   };
 
   window.firebaseAuth = {
@@ -1047,17 +1046,6 @@ h1{
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,.12);
 }
-.stat-card.accent-orange { border-left-color: #f97316; }
-.stat-card.accent-green  { border-left-color: #22c55e; }
-.stat-card.accent-red    { border-left-color: #ef4444; }
-.stat-card.accent-green .stat-value { color: #16a34a; }
-.stat-card.accent-red .stat-value   { color: #dc2626; }
-[data-theme="dark"] .stat-card.accent-green .stat-value { color: #4ade80; }
-[data-theme="dark"] .stat-card.accent-red .stat-value   { color: #f87171; }
-.saldo-pos { color: #16a34a; font-weight: 700; }
-.saldo-neg { color: #dc2626; font-weight: 700; }
-[data-theme="dark"] .saldo-pos { color: #4ade80; }
-[data-theme="dark"] .saldo-neg { color: #f87171; }
 
 .stat-label{
     font-size:10px;
@@ -2807,22 +2795,6 @@ body.user-mode #dashboardTable th{
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
         </div>
-        <!-- Residui ferie storici — visibili solo per utenti USER con dati in Firebase -->
-        <div class="stat-card accent-orange" id="residuiPrecCard" style="display:none">
-            <div class="stat-label">Residui Anni Prec.</div>
-            <div class="stat-value" id="residuiPrecVal">0</div>
-            <div class="stat-subvalue" id="residuiPrecSub">anni precedenti</div>
-        </div>
-        <div class="stat-card" id="totDisponibileCard" style="display:none">
-            <div class="stat-label">Totale Disponibile</div>
-            <div class="stat-value" id="totDisponibileVal">0</div>
-            <div class="stat-subvalue" id="totDisponibileSub">residui + maturate anno</div>
-        </div>
-        <div class="stat-card accent-green" id="saldoFerieCard" style="display:none">
-            <div class="stat-label">Saldo Ferie</div>
-            <div class="stat-value" id="saldoFerieVal">0</div>
-            <div class="stat-subvalue" id="saldoFerieSub">disponibile - usate</div>
-        </div>
     </div>
 
     <!-- dashboard -->
@@ -3226,7 +3198,6 @@ body.user-mode #dashboardTable th{
 let users = [];
 let usersConfig = {}; // Email e ruoli caricati da Firebase
 window.usersList = users;
-window.residuiData = {}; // Residui ferie per anno corrente — { Cognome: { residuiAnniPrecedenti, maturateAnnualmente, totaleDisponibile } }
 
 // Dati mesi per anno - festività Italia
 // Festività lavorative ufficiali italiane
@@ -3646,68 +3617,6 @@ async function loadAllData() {
     }
 }
 
-// ================= RESIDUI FERIE =================
-
-async function loadResidui(year) {
-    try {
-        const snap = await window.firebaseDB.get(window.firebaseDB.ref(`residuiFerie/${year}`));
-        if (snap.exists()) {
-            window.residuiData = snap.val();
-            console.log(`✅ Residui ferie ${year} caricati (${Object.keys(window.residuiData).length} utenti)`);
-            return;
-        }
-
-        // Nessun dato per l'anno corrente: verifica se esiste l'anno precedente per rollover
-        const prevYear = year - 1;
-        const snapPrev = await window.firebaseDB.get(window.firebaseDB.ref(`residuiFerie/${prevYear}`));
-        if (snapPrev.exists()) {
-            await rolloverResidui(snapPrev.val(), prevYear, year);
-            // Rileggi dopo il rollover
-            const snap2 = await window.firebaseDB.get(window.firebaseDB.ref(`residuiFerie/${year}`));
-            window.residuiData = snap2.exists() ? snap2.val() : {};
-            console.log(`✅ Rollover completato, residui ${year} caricati`);
-        } else {
-            window.residuiData = {};
-        }
-    } catch(e) {
-        console.error('❌ Errore caricamento residui ferie:', e);
-        window.residuiData = {};
-    }
-}
-
-async function rolloverResidui(prevData, fromYear, toYear) {
-    console.log(`🔄 Rollover residui ferie ${fromYear} → ${toYear}...`);
-    try {
-        // Carica ferie usate nell'anno precedente
-        const ferieSnap = await window.firebaseDB.get(window.firebaseDB.ref(`ferie${fromYear}`));
-        const ferieRaw = ferieSnap.exists() ? sanitizeYearData(ferieSnap.val()) : {};
-        const prevMonths = yearsData[fromYear];
-
-        const newYearData = {};
-        for (const [cognome, prev] of Object.entries(prevData)) {
-            let usate = 0;
-            if (prevMonths) {
-                prevMonths.forEach((m, mi) => {
-                    for (let d = 1; d <= m.d; d++) {
-                        usate += parseDays(ferieRaw[`${cognome}-${fromYear}-${mi + 1}-${d}`]);
-                    }
-                });
-            }
-            const saldo = Math.max(0, Math.round((prev.totaleDisponibile - usate) * 100) / 100);
-            newYearData[cognome] = {
-                residuiAnniPrecedenti: saldo,
-                maturateAnnualmente: prev.maturateAnnualmente,
-                totaleDisponibile: Math.round((saldo + prev.maturateAnnualmente) * 100) / 100
-            };
-        }
-
-        await window.firebaseDB.set(window.firebaseDB.ref(`residuiFerie/${toYear}`), newYearData);
-        console.log(`✅ Rollover ${fromYear}→${toYear} completato per ${Object.keys(newYearData).length} utenti`);
-    } catch(e) {
-        console.error('❌ Errore rollover residui:', e);
-    }
-}
-
 // ================= STATISTICHE =================
 
 function calculateStats(){
@@ -3761,32 +3670,6 @@ function calculateStats(){
     }
     document.getElementById('topUser').innerHTML = maxUser + '<span class="crown-icon">👑</span>';
     document.getElementById('topUserDays').textContent = (userDays[maxUser] || 0).toFixed(1) + ' giorni';
-
-    // Card residui ferie — visibili solo per USER con dati storici
-    const residuiCards = ['residuiPrecCard', 'totDisponibileCard', 'saldoFerieCard'];
-    const userResidui = (currentUserRole === 'user') ? (window.residuiData[currentUser] || null) : null;
-    residuiCards.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = userResidui ? '' : 'none';
-    });
-    if (userResidui) {
-        const ferieUsate = userDays[currentUser] || 0;
-        const saldo = Math.round((userResidui.totaleDisponibile - ferieUsate) * 100) / 100;
-
-        document.getElementById('residuiPrecVal').textContent = userResidui.residuiAnniPrecedenti.toFixed(1);
-        document.getElementById('residuiPrecSub').textContent = `maturate ${currentYear}: ${userResidui.maturateAnnualmente.toFixed(1)} gg`;
-
-        document.getElementById('totDisponibileVal').textContent = userResidui.totaleDisponibile.toFixed(1);
-        document.getElementById('totDisponibileSub').textContent = `${userResidui.residuiAnniPrecedenti.toFixed(1)} prec. + ${userResidui.maturateAnnualmente.toFixed(1)} anno`;
-
-        const saldoEl = document.getElementById('saldoFerieVal');
-        saldoEl.textContent = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
-        document.getElementById('saldoFerieSub').textContent = saldo >= 0 ? 'giorni rimanenti' : 'giorni in eccesso';
-
-        const saldoCard = document.getElementById('saldoFerieCard');
-        saldoCard.classList.remove('accent-green', 'accent-red');
-        saldoCard.classList.add(saldo >= 0 ? 'accent-green' : 'accent-red');
-    }
 }
 
 // ================= FILTRI UTENTI =================
@@ -4376,7 +4259,6 @@ function renderMobileCalendar(){
 
 function renderDashboard(){
     const tb=document.querySelector("#dashboardTable tbody");
-    const thead=document.querySelector("#dashboardTable thead tr");
     tb.innerHTML="";
 
     const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
@@ -4394,53 +4276,32 @@ function renderDashboard(){
         });
         usersWithDays.push({ user: u, days: days });
     });
-
+    
     // Ordina in base alla direzione (crescente o decrescente)
     const isDescending = window.dashboardSortDescending !== false; // Default true
     usersWithDays.sort((a, b) => {
         return isDescending ? (b.days - a.days) : (a.days - b.days);
     });
-
+    
+    // Mostra TUTTI gli utenti (nessun limite)
     const displayUsers = usersWithDays;
-
+    
     // Aggiorna badge contatore
     const badge = document.getElementById('userCountBadge');
-    if (badge) badge.textContent = displayUsers.length;
-
-    // Colonne residui — visibili per admin solo se almeno un utente ha dati
-    const isAdmin = currentUserRole !== 'user';
-    const showResidui = isAdmin && displayUsers.some(item => window.residuiData[item.user]);
-
-    // Aggiorna intestazione tabella
-    if (thead) {
-        thead.innerHTML = showResidui
-            ? `<th>Utente</th><th>Giorni</th><th>Ore</th><th title="Residui anni precedenti + maturate anno corrente">Tot. Disp.</th><th>Saldo</th>`
-            : `<th>Utente</th><th>Giorni</th><th>Ore</th>`;
+    if (badge) {
+        badge.textContent = displayUsers.length;
     }
-
+    
     // Renderizza righe
     displayUsers.forEach(item => {
         const u = item.user;
         const days = item.days;
-        let extraCells = '';
-
-        if (showResidui) {
-            const r = window.residuiData[u];
-            if (r) {
-                const saldo = Math.round((r.totaleDisponibile - days) * 100) / 100;
-                const saldoClass = saldo >= 0 ? 'saldo-pos' : 'saldo-neg';
-                const saldoStr = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
-                extraCells = `<td>${r.totaleDisponibile.toFixed(1)}</td><td class="${saldoClass}">${saldoStr}</td>`;
-            } else {
-                extraCells = `<td>—</td><td>—</td>`;
-            }
-        }
-
+        
+        // Click sull'intera riga, senza icona
         tb.innerHTML+=`<tr onclick="openUserAnalysis('${u}')" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <td class="dashboard-username">${u}</td>
             <td>${days.toFixed(1)}</td>
             <td>${(days * 8).toFixed(0)}</td>
-            ${extraCells}
         </tr>`;
     });
 }
@@ -5921,8 +5782,7 @@ function changeYear(delta){
         document.getElementById('yearLabel').textContent = currentYear;
         // Svuota cache e ricarica dati per il nuovo anno
         dataCache = {};
-        loadAllData().then(async () => {
-            await loadResidui(currentYear);
+        loadAllData().then(() => {
             setupRealtimeListener();
             render();
         });
@@ -6198,7 +6058,6 @@ window.initApp = async function() {
     // STEP 4: Inizializza resto dell'app
     loadTheme();
     await loadAllData();
-    await loadResidui(currentYear);
     setupRealtimeListener();
     render();
     
