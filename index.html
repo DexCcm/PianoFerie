@@ -3732,7 +3732,9 @@ async function rolloverResidui(prevData, fromYear, toYear) {
         const prevMonths = yearsData[fromYear];
 
         const newYearData = {};
-        for (const [cognome, prev] of Object.entries(prevData)) {
+        for (const [rawCognome, prev] of Object.entries(prevData)) {
+            // Firebase ha chiavi UPPERCASE, ferie{year} usa la forma capitalizzata dell'app
+            const cognome = users.find(u => u.toUpperCase() === rawCognome.toUpperCase()) || rawCognome;
             let usate = 0;
             if (prevMonths) {
                 prevMonths.forEach((m, mi) => {
@@ -3742,7 +3744,7 @@ async function rolloverResidui(prevData, fromYear, toYear) {
                 });
             }
             const saldo = Math.max(0, Math.round((prev.totaleDisponibile - usate) * 100) / 100);
-            newYearData[cognome] = {
+            newYearData[rawCognome] = {
                 residuiAnniPrecedenti: saldo,
                 maturateAnnualmente: prev.maturateAnnualmente,
                 totaleDisponibile: Math.round((saldo + prev.maturateAnnualmente) * 100) / 100
