@@ -2826,12 +2826,12 @@ thead .today-col {
     <!-- Statistiche Cards -->
     <div class="stats-row" id="statsRow">
         <div class="stat-card" onclick="onStatCardClick('summary')" style="cursor:pointer;" title="Clicca per dettagli">
-            <div class="stat-label">Totale Giorni Ferie</div>
+            <div class="stat-label">Totale Ferie Inserite</div>
             <div class="stat-value" id="totalDays">0</div>
             <div class="stat-subvalue" id="totalHours">0 ore</div>
         </div>
         <div class="stat-card" onclick="onStatCardClick('summary')" style="cursor:pointer;" title="Clicca per dettagli">
-            <div class="stat-label" id="avgLabel">Media per Persona</div>
+            <div class="stat-label" id="avgLabel">Media per Persona (gg)</div>
             <div class="stat-value" id="avgDays">0</div>
             <div class="stat-subvalue" id="avgHours">0 ore</div>
         </div>
@@ -2847,17 +2847,17 @@ thead .today-col {
         </div>
         <!-- Residui ferie storici — visibili solo per utenti USER con dati in Firebase -->
         <div class="stat-card accent-orange" id="residuiPrecCard" style="display:none">
-            <div class="stat-label">Residui Anni Prec.</div>
+            <div class="stat-label">Residui Ferie Anni Prec.</div>
             <div class="stat-value" id="residuiPrecVal">0</div>
             <div class="stat-subvalue" id="residuiPrecSub">anni precedenti</div>
         </div>
         <div class="stat-card" id="totDisponibileCard" style="display:none">
-            <div class="stat-label">Totale Disponibile</div>
+            <div class="stat-label">Totale Ferie Disponibili</div>
             <div class="stat-value" id="totDisponibileVal">0</div>
-            <div class="stat-subvalue" id="totDisponibileSub">residui + maturate anno corrente</div>
+            <div class="stat-subvalue" id="totDisponibileSub">residui + maturate anno</div>
         </div>
         <div class="stat-card accent-green" id="saldoFerieCard" style="display:none">
-            <div class="stat-label">Saldo Ferie</div>
+            <div class="stat-label">Saldo Ferie Aggiornato</div>
             <div class="stat-value" id="saldoFerieVal">0</div>
             <div class="stat-subvalue" id="saldoFerieSub">disponibile - usate</div>
         </div>
@@ -3687,6 +3687,7 @@ async function loadAllData() {
 // ================= RESIDUI FERIE =================
 
 function normalizeResidui(raw) {
+    // Rimappa le chiavi Firebase (es. VISCOMI) ai cognomi dell'app (es. Viscomi)
     const normalized = {};
     for (const [key, val] of Object.entries(raw)) {
         const match = users.find(u => u.toUpperCase() === key.toUpperCase()) || key;
@@ -4440,6 +4441,7 @@ function sortDashboardBy(col) {
         window.dashboardSort.col = col;
         window.dashboardSort.dir = 'desc';
     }
+    // Sincronizza bottone legacy con colonna giorni
     window.dashboardSortDescending = window.dashboardSort.dir === 'desc';
     renderDashboard();
 }
@@ -5005,6 +5007,7 @@ async function removeReleaseByKey(key, td){
     const day   = parts[parts.length - 1];
     const yr    = parseInt(year);
 
+    // Target: solo utenti con areaPapyrus:true (specchio dell'inserimento)
     const papyrusUsers = Object.entries(usersConfig)
         .filter(([, cfg]) => cfg.areaPapyrus === true)
         .map(([name]) => name);
@@ -5013,6 +5016,7 @@ async function removeReleaseByKey(key, td){
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
+        // Cancella la cella (e il relativo range) per ogni areaPapyrus sulla data cliccata
         for(const u of papyrusUsers){
             const k  = `${u}-${year}-${month}-${day}`;
             const rk = `${k}__range`;
@@ -5026,6 +5030,7 @@ async function removeReleaseByKey(key, td){
             delete dataCache[rk];
         }
 
+        // Pulizia __ppDate: rimuovi solo se nessun areaPapyrus ha ancora R- nell'anno
         try {
             const ppMetaRef = window.firebaseDB.ref(`ferie${yr}/__ppDate`);
             const snap = await window.firebaseDB.get(ppMetaRef);
@@ -6341,7 +6346,7 @@ const msalConfig = {
     auth: {
         clientId: "865d7a43-b0b8-4d4b-a718-864386845d2f", // IMPORTANTE: Sostituire con il tuo Client ID da Azure AD
         authority: "https://login.microsoftonline.com/organizations", // ← Solo account aziendali
-        redirectUri: "http://localhost:5500", // LOCAL DEV — non committare
+        redirectUri: "https://dexccm.github.io/PianoFerie/", // URL del tuo GitHub Pages
         navigateToLoginRequestUrl: false
     },
     cache: {
@@ -6498,56 +6503,7 @@ function initLogin() {
     }
 }
 
-// =====================================================
-// LOCAL DEV BYPASS — non committare questo file
-// =====================================================
-const DEV_USERS = [
-    { cognome: 'Viscomi',  email: 'simone.viscomi@dataexpert.it', role: 'admin' },
-    { cognome: 'Trevisin', email: 'trevisin@dataexpert.it',        role: 'user'  },
-];
-let devUserIndex = 0;
-
-function applyDevUser(idx) {
-    const u = DEV_USERS[idx];
-    currentUser      = u.cognome;
-    currentUserEmail = u.email;
-    currentUserRole  = u.role;
-    const lbl = document.getElementById('devUserLabel');
-    if (lbl) lbl.textContent = `${u.cognome} (${u.role})`;
-}
-
-window.addEventListener('load', async () => {
-    // Attendi che il modulo Firebase sia pronto (type="module" si inizializza dopo DOMContentLoaded)
-    await new Promise(resolve => {
-        const check = () => window.firebaseDB ? resolve() : setTimeout(check, 50);
-        check();
-    });
-
-    // Inietta banner dev switcher
-    const banner = document.createElement('div');
-    banner.id = 'devBanner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#7c3aed;color:#fff;font-size:12px;font-family:monospace;padding:4px 12px;display:flex;align-items:center;gap:10px;';
-    banner.innerHTML = `<span>⚙️ DEV MODE</span><span id="devUserLabel"></span><button id="devSwitchBtn" style="background:#fff;color:#7c3aed;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-weight:700;">Cambia utente</button>`;
-    document.body.prepend(banner);
-
-    applyDevUser(devUserIndex);
-
-    // showApp() chiama già initApp() internamente — qui impostiamo solo il cambio utente
-    document.getElementById('devSwitchBtn').addEventListener('click', async () => {
-        devUserIndex = (devUserIndex + 1) % DEV_USERS.length;
-        applyDevUser(devUserIndex);
-        // Ricarica residui per il nuovo utente poi ri-renderizza
-        await loadResidui(currentYear);
-        render();
-        applyUserPermissions();
-        calculateStats();
-        renderDashboard();
-    });
-
-    // Imposta le variabili globali PRIMA che showApp le legga
-    // showApp() chiama window.initApp() internamente
-    showApp();
-});
+document.addEventListener('DOMContentLoaded', initLogin);
 
 // Inizializza MSAL (inizializzazione sicura dopo il caricamento di MSAL)
 let msalInstance = null;
