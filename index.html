@@ -2854,7 +2854,7 @@ thead .today-col {
         <div class="stat-card" id="totDisponibileCard" style="display:none">
             <div class="stat-label">Totale Ferie Disponibili</div>
             <div class="stat-value" id="totDisponibileVal">0</div>
-            <div class="stat-subvalue" id="totDisponibileSub">residui + maturate anno corrente</div>
+            <div class="stat-subvalue" id="totDisponibileSub">residui + maturate anno</div>
         </div>
         <div class="stat-card accent-green" id="saldoFerieCard" style="display:none">
             <div class="stat-label">Saldo Ferie Aggiornato</div>
@@ -3825,7 +3825,7 @@ function calculateStats(){
         document.getElementById('residuiPrecSub').textContent = `maturate ${currentYear}: ${userResidui.maturateAnnualmente.toFixed(1)} gg`;
 
         document.getElementById('totDisponibileVal').textContent = userResidui.totaleDisponibile.toFixed(1);
-        document.getElementById('totDisponibileSub').textContent = `${userResidui.residuiAnniPrecedenti.toFixed(1)} prec. + ${userResidui.maturateAnnualmente.toFixed(1)} anno`;
+        document.getElementById('totDisponibileSub').textContent = `${userResidui.residuiAnniPrecedenti.toFixed(1)} prec. + ${userResidui.maturateAnnualmente.toFixed(1)} anno corrente`;
 
         const saldoEl = document.getElementById('saldoFerieVal');
         saldoEl.textContent = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
