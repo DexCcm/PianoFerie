@@ -17,7 +17,7 @@
 <!-- Firebase SDK v9+ (modular) -->
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-  import { getDatabase, ref, set, get, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+  import { getDatabase, ref, set, get, onValue, remove, update } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
   import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
 
   const firebaseConfig = {
@@ -39,7 +39,8 @@
     set: set,
     get: get,
     onValue: onValue,
-    remove: remove
+    remove: remove,
+    update: (refObj, data) => update(refObj, data)
   };
 
   window.firebaseAuth = {
@@ -1045,6 +1046,39 @@ h1{
 .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,.12);
+}
+.stat-card.accent-orange { border-left-color: #f97316; }
+.stat-card.accent-green  { border-left-color: #22c55e; }
+.stat-card.accent-red    { border-left-color: #ef4444; }
+.stat-card.accent-green .stat-value { color: #16a34a; }
+.stat-card.accent-red .stat-value   { color: #dc2626; }
+[data-theme="dark"] .stat-card.accent-green .stat-value { color: #4ade80; }
+[data-theme="dark"] .stat-card.accent-red .stat-value   { color: #f87171; }
+.saldo-pos { color: #16a34a; font-weight: 700; }
+.saldo-neg { color: #dc2626; font-weight: 700; }
+[data-theme="dark"] .saldo-pos { color: #4ade80; }
+[data-theme="dark"] .saldo-neg { color: #f87171; }
+
+/* ── Colonne ordinabili dashboard ── */
+#dashboardTable th.sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+#dashboardTable th.sortable:hover {
+    background: var(--hover-bg);
+}
+#dashboardTable th.sort-active {
+    color: var(--accent-blue-dark);
+}
+#dashboardTable th .sort-icon {
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
+    opacity: 0.6;
+}
+#dashboardTable th.sort-active .sort-icon {
+    opacity: 1;
 }
 
 .stat-label{
@@ -2361,6 +2395,22 @@ body.user-mode #dashboardTable th{
     color: #fda4af; /* Rose-300 per testo leggibile */
 }
 
+/* ── Colonna giorno corrente ── */
+.today-col {
+    background-color: rgba(59,130,246,0.07);
+}
+thead .today-col {
+    background-color: rgba(59,130,246,0.14);
+    color: var(--accent-blue-dark);
+    font-weight: 700;
+}
+[data-theme="dark"] .today-col {
+    background-color: rgba(99,160,255,0.10);
+}
+[data-theme="dark"] thead .today-col {
+    background-color: rgba(99,160,255,0.20);
+}
+
 /*[PRESIDIO ]*/
   
 .user-own-row td.presidio-cell {
@@ -2776,7 +2826,7 @@ body.user-mode #dashboardTable th{
     <!-- Statistiche Cards -->
     <div class="stats-row" id="statsRow">
         <div class="stat-card" onclick="onStatCardClick('summary')" style="cursor:pointer;" title="Clicca per dettagli">
-            <div class="stat-label">Totale Giorni</div>
+            <div class="stat-label">Totale Giorni Ferie</div>
             <div class="stat-value" id="totalDays">0</div>
             <div class="stat-subvalue" id="totalHours">0 ore</div>
         </div>
@@ -2794,6 +2844,22 @@ body.user-mode #dashboardTable th{
             <div class="stat-label">Utente con Più Ferie</div>
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
+        </div>
+        <!-- Residui ferie storici — visibili solo per utenti USER con dati in Firebase -->
+        <div class="stat-card accent-orange" id="residuiPrecCard" style="display:none">
+            <div class="stat-label">Residui Anni Prec.</div>
+            <div class="stat-value" id="residuiPrecVal">0</div>
+            <div class="stat-subvalue" id="residuiPrecSub">anni precedenti</div>
+        </div>
+        <div class="stat-card" id="totDisponibileCard" style="display:none">
+            <div class="stat-label">Totale Disponibile</div>
+            <div class="stat-value" id="totDisponibileVal">0</div>
+            <div class="stat-subvalue" id="totDisponibileSub">residui + maturate anno corrente</div>
+        </div>
+        <div class="stat-card accent-green" id="saldoFerieCard" style="display:none">
+            <div class="stat-label">Saldo Ferie</div>
+            <div class="stat-value" id="saldoFerieVal">0</div>
+            <div class="stat-subvalue" id="saldoFerieSub">disponibile - usate</div>
         </div>
     </div>
 
@@ -3198,6 +3264,7 @@ body.user-mode #dashboardTable th{
 let users = [];
 let usersConfig = {}; // Email e ruoli caricati da Firebase
 window.usersList = users;
+window.residuiData = {}; // Residui ferie per anno corrente — { Cognome: { residuiAnniPrecedenti, maturateAnnualmente, totaleDisponibile } }
 
 // Dati mesi per anno - festività Italia
 // Festività lavorative ufficiali italiane
@@ -3617,6 +3684,77 @@ async function loadAllData() {
     }
 }
 
+// ================= RESIDUI FERIE =================
+
+function normalizeResidui(raw) {
+    const normalized = {};
+    for (const [key, val] of Object.entries(raw)) {
+        const match = users.find(u => u.toUpperCase() === key.toUpperCase()) || key;
+        normalized[match] = val;
+    }
+    return normalized;
+}
+
+async function loadResidui(year) {
+    try {
+        const snap = await window.firebaseDB.get(window.firebaseDB.ref(`residuiFerie/${year}`));
+        if (snap.exists()) {
+            window.residuiData = normalizeResidui(snap.val());
+            console.log(`✅ Residui ferie ${year} caricati (${Object.keys(window.residuiData).length} utenti)`);
+            return;
+        }
+
+        // Nessun dato per l'anno corrente: verifica se esiste l'anno precedente per rollover
+        const prevYear = year - 1;
+        const snapPrev = await window.firebaseDB.get(window.firebaseDB.ref(`residuiFerie/${prevYear}`));
+        if (snapPrev.exists()) {
+            await rolloverResidui(snapPrev.val(), prevYear, year);
+            // Rileggi dopo il rollover
+            const snap2 = await window.firebaseDB.get(window.firebaseDB.ref(`residuiFerie/${year}`));
+            window.residuiData = snap2.exists() ? normalizeResidui(snap2.val()) : {};
+            console.log(`✅ Rollover completato, residui ${year} caricati`);
+        } else {
+            window.residuiData = {};
+        }
+    } catch(e) {
+        console.error('❌ Errore caricamento residui ferie:', e);
+        window.residuiData = {};
+    }
+}
+
+async function rolloverResidui(prevData, fromYear, toYear) {
+    console.log(`🔄 Rollover residui ferie ${fromYear} → ${toYear}...`);
+    try {
+        // Carica ferie usate nell'anno precedente
+        const ferieSnap = await window.firebaseDB.get(window.firebaseDB.ref(`ferie${fromYear}`));
+        const ferieRaw = ferieSnap.exists() ? sanitizeYearData(ferieSnap.val()) : {};
+        const prevMonths = yearsData[fromYear];
+
+        const newYearData = {};
+        for (const [cognome, prev] of Object.entries(prevData)) {
+            let usate = 0;
+            if (prevMonths) {
+                prevMonths.forEach((m, mi) => {
+                    for (let d = 1; d <= m.d; d++) {
+                        usate += parseDays(ferieRaw[`${cognome}-${fromYear}-${mi + 1}-${d}`]);
+                    }
+                });
+            }
+            const saldo = Math.max(0, Math.round((prev.totaleDisponibile - usate) * 100) / 100);
+            newYearData[cognome] = {
+                residuiAnniPrecedenti: saldo,
+                maturateAnnualmente: prev.maturateAnnualmente,
+                totaleDisponibile: Math.round((saldo + prev.maturateAnnualmente) * 100) / 100
+            };
+        }
+
+        await window.firebaseDB.set(window.firebaseDB.ref(`residuiFerie/${toYear}`), newYearData);
+        console.log(`✅ Rollover ${fromYear}→${toYear} completato per ${Object.keys(newYearData).length} utenti`);
+    } catch(e) {
+        console.error('❌ Errore rollover residui:', e);
+    }
+}
+
 // ================= STATISTICHE =================
 
 function calculateStats(){
@@ -3670,6 +3808,32 @@ function calculateStats(){
     }
     document.getElementById('topUser').innerHTML = maxUser + '<span class="crown-icon">👑</span>';
     document.getElementById('topUserDays').textContent = (userDays[maxUser] || 0).toFixed(1) + ' giorni';
+
+    // Card residui ferie — visibili solo per USER con dati storici
+    const residuiCards = ['residuiPrecCard', 'totDisponibileCard', 'saldoFerieCard'];
+    const userResidui = (currentUserRole === 'user') ? (window.residuiData[currentUser] || null) : null;
+    residuiCards.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = userResidui ? '' : 'none';
+    });
+    if (userResidui) {
+        const ferieUsate = userDays[currentUser] || 0;
+        const saldo = Math.round((userResidui.totaleDisponibile - ferieUsate) * 100) / 100;
+
+        document.getElementById('residuiPrecVal').textContent = userResidui.residuiAnniPrecedenti.toFixed(1);
+        document.getElementById('residuiPrecSub').textContent = `maturate ${currentYear}: ${userResidui.maturateAnnualmente.toFixed(1)} gg`;
+
+        document.getElementById('totDisponibileVal').textContent = userResidui.totaleDisponibile.toFixed(1);
+        document.getElementById('totDisponibileSub').textContent = `${userResidui.residuiAnniPrecedenti.toFixed(1)} prec. + ${userResidui.maturateAnnualmente.toFixed(1)} anno`;
+
+        const saldoEl = document.getElementById('saldoFerieVal');
+        saldoEl.textContent = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
+        document.getElementById('saldoFerieSub').textContent = saldo >= 0 ? 'giorni rimanenti' : 'giorni in eccesso';
+
+        const saldoCard = document.getElementById('saldoFerieCard');
+        saldoCard.classList.remove('accent-green', 'accent-red');
+        saldoCard.classList.add(saldo >= 0 ? 'accent-green' : 'accent-red');
+    }
 }
 
 // ================= FILTRI UTENTI =================
@@ -3935,25 +4099,33 @@ function renderPlanner(){
         idxs=[0,1,2,3,4,5,6,7,8,9,10,11];
     }
 
+    const _today = new Date();
+    const _todayY = _today.getFullYear();
+    const _todayM = _today.getMonth();
+    const _todayD = _today.getDate();
+
     idxs.forEach(mi=>{
         const m=months[mi];
-        
+
         // Aggiungo titolo mese sopra ogni planner
         let html='';
         html+=`<div class="planner-month-title">${m.n} ${currentYear}</div>`;
-        
+
         html+=`<div class="planner-box"><table class="planner"><thead>
         <tr class="weekday-row">
             <th class="member-name" rowspan="2">Utente</th>`;
 
         for(let d=1;d<=m.d;d++){
-            html+=`<th>${["dom","lun","mar","mer","gio","ven","sab"][new Date(currentYear,mi,d).getDay()]}</th>`;
+            const isToday = currentYear===_todayY && mi===_todayM && d===_todayD;
+            html+=`<th${isToday?' class="today-col"':''}>${["dom","lun","mar","mer","gio","ven","sab"][new Date(currentYear,mi,d).getDay()]}</th>`;
         }
 
         html+=`</tr><tr>`;
         for(let d=1;d<=m.d;d++){
             const wd=new Date(currentYear,mi,d).getDay();
-            html+=`<th class="${wd===0||wd===6||m.h.includes(d)?"holiday-col":""}">${d}</th>`;
+            const isToday = currentYear===_todayY && mi===_todayM && d===_todayD;
+            const cls = [wd===0||wd===6||m.h.includes(d)?"holiday-col":"", isToday?"today-col":""].filter(Boolean).join(' ');
+            html+=`<th${cls?' class="'+cls+'"':''}>${d}</th>`;
         }
         html+=`</tr></thead><tbody>`;
 
@@ -3973,22 +4145,23 @@ function renderPlanner(){
                 // ✅ Mese 1-indexed per database: gennaio=1, febbraio=2, etc.
                 const key=`${u}-${currentYear}-${mi + 1}-${d}`;
                 const v=dataCache[key]||"";
-                
+                const _tc = (currentYear===_todayY && mi===_todayM && d===_todayD) ? ' today-col' : '';
+
             if(wd === 0){
-                html+=`<td class="holiday-col" title="Domenica">D</td>`;
+                html+=`<td class="holiday-col${_tc}" title="Domenica">D</td>`;
             }
             else if(wd === 6){
                 let displayValue = v || "S";
-                let cls = "editable holiday-col";
+                let cls = "editable holiday-col" + _tc;
                 let titleText = "Sabato";
 
                 /* [PRESIDIO] */
                 if(v.startsWith('R-')){
                     displayValue = v.substring(2);
-                    cls = "editable presidio-cell";
+                    cls = "editable presidio-cell" + _tc;
                     titleText = "Sabato - Release Allianz";
                 }
-                
+
 
                 if(canEditRow){
                     html+=`<td class="${cls}" onclick="handleCellClick(event, this,'${key}',${d},${mi},true)" data-key="${key}" data-saturday="true" title="${titleText}">${displayValue}</td>`;
@@ -3998,12 +4171,12 @@ function renderPlanner(){
             }
             else if(m.h.includes(d)){
                 const holidayName = getHolidayName(currentYear, mi, d);
-                html+=`<td class="holiday-col" title="${holidayName}">F</td>`;
+                html+=`<td class="holiday-col${_tc}" title="${holidayName}">F</td>`;
             }
                 // Santo Patrono Marnate: 13 Gennaio, non bloccato
                 else if(mi === 0 && d === 13){
                     const spTitle = "Santo Patrono Marnate – Sant'Ilario di Poitiers";
-                    let cls = "editable santo-patrono";
+                    let cls = "editable santo-patrono" + _tc;
                     let spDisplay = 'SP';
                     let spRangeAttr = '';
                     if(v){
@@ -4030,7 +4203,7 @@ function renderPlanner(){
                 }
                 // Altri giorni: ferie normali
                 else{
-                    let cls="editable";
+                    let cls="editable" + _tc;
                     const permits = parsePermits(v);
                     const rawRange = getRangeLabel(key);
 
@@ -4257,8 +4430,23 @@ function renderMobileCalendar(){
     });
 }
 
+// Stato sort colonne dashboard: { col: 'giorni'|'ore'|'totDisp'|'saldo', dir: 'desc'|'asc' }
+window.dashboardSort = { col: 'giorni', dir: 'desc' };
+
+function sortDashboardBy(col) {
+    if (window.dashboardSort.col === col) {
+        window.dashboardSort.dir = window.dashboardSort.dir === 'desc' ? 'asc' : 'desc';
+    } else {
+        window.dashboardSort.col = col;
+        window.dashboardSort.dir = 'desc';
+    }
+    window.dashboardSortDescending = window.dashboardSort.dir === 'desc';
+    renderDashboard();
+}
+
 function renderDashboard(){
     const tb=document.querySelector("#dashboardTable tbody");
+    const thead=document.querySelector("#dashboardTable thead tr");
     tb.innerHTML="";
 
     const visibleUsers = (currentUserRole === 'user') ? [currentUser] : users;
@@ -4269,68 +4457,95 @@ function renderDashboard(){
         let days=0;
         months.forEach((m,mi)=>{
             for(let d=1;d<=m.d;d++){
-                // ✅ Mese 1-indexed: gennaio=1, febbraio=2, etc.
                 const key = `${u}-${currentYear}-${mi + 1}-${d}`;
                 days+=parseDays(dataCache[key]);
             }
         });
         usersWithDays.push({ user: u, days: days });
     });
-    
-    // Ordina in base alla direzione (crescente o decrescente)
-    const isDescending = window.dashboardSortDescending !== false; // Default true
+
+    // Ordina per colonna e direzione attive
+    const { col, dir } = window.dashboardSort;
     usersWithDays.sort((a, b) => {
-        return isDescending ? (b.days - a.days) : (a.days - b.days);
+        let va = 0, vb = 0;
+        if (col === 'giorni' || col === 'ore') {
+            va = a.days; vb = b.days;
+        } else if (col === 'totDisp') {
+            va = (window.residuiData[a.user] || {}).totaleDisponibile || 0;
+            vb = (window.residuiData[b.user] || {}).totaleDisponibile || 0;
+        } else if (col === 'saldo') {
+            const ra = window.residuiData[a.user];
+            const rb = window.residuiData[b.user];
+            va = ra ? ra.totaleDisponibile - a.days : -Infinity;
+            vb = rb ? rb.totaleDisponibile - b.days : -Infinity;
+        }
+        return dir === 'desc' ? vb - va : va - vb;
     });
-    
-    // Mostra TUTTI gli utenti (nessun limite)
-    const displayUsers = usersWithDays;
-    
+
     // Aggiorna badge contatore
     const badge = document.getElementById('userCountBadge');
-    if (badge) {
-        badge.textContent = displayUsers.length;
+    if (badge) badge.textContent = usersWithDays.length;
+
+    // Colonne residui — visibili per admin solo se almeno un utente ha dati
+    const isAdmin = currentUserRole !== 'user';
+    const showResidui = isAdmin && usersWithDays.some(item => window.residuiData[item.user]);
+
+    // Helper: genera <th> sortabile
+    function th(colKey, label, title = '') {
+        const active = window.dashboardSort.col === colKey;
+        const icon = active ? (window.dashboardSort.dir === 'desc' ? '↓' : '↑') : '↕';
+        const cls = `sortable${active ? ' sort-active' : ''}`;
+        const tt = title ? ` title="${title}"` : '';
+        return `<th class="${cls}"${tt} onclick="sortDashboardBy('${colKey}')">${label}<span class="sort-icon">${icon}</span></th>`;
     }
-    
+
+    // Aggiorna intestazione tabella
+    if (thead) {
+        thead.innerHTML = `<th>Utente</th>${th('giorni','Giorni')}${th('ore','Ore')}` +
+            (showResidui ? th('totDisp','Tot. Disp.','Residui anni prec. + maturate anno corrente') + th('saldo','Saldo') : '');
+    }
+
+    // Sincronizza icona bottone sort legacy
+    const btn = document.getElementById('dashboardSortBtn');
+    const btnIcon = btn ? btn.querySelector('.dashboard-sort-icon') : null;
+    if (btn && btnIcon) {
+        const byGiorni = window.dashboardSort.col === 'giorni';
+        const desc = window.dashboardSort.dir === 'desc';
+        btnIcon.textContent = (byGiorni && !desc) ? '↑' : '↓';
+        btn.classList.toggle('descending', !byGiorni || desc);
+        btn.classList.toggle('ascending', byGiorni && !desc);
+    }
+
     // Renderizza righe
-    displayUsers.forEach(item => {
+    usersWithDays.forEach(item => {
         const u = item.user;
         const days = item.days;
-        
-        // Click sull'intera riga, senza icona
+        let extraCells = '';
+
+        if (showResidui) {
+            const r = window.residuiData[u];
+            if (r) {
+                const saldo = Math.round((r.totaleDisponibile - days) * 100) / 100;
+                const saldoClass = saldo >= 0 ? 'saldo-pos' : 'saldo-neg';
+                const saldoStr = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
+                extraCells = `<td>${r.totaleDisponibile.toFixed(1)}</td><td class="${saldoClass}">${saldoStr}</td>`;
+            } else {
+                extraCells = `<td>—</td><td>—</td>`;
+            }
+        }
+
         tb.innerHTML+=`<tr onclick="openUserAnalysis('${u}')" style="cursor:pointer;" title="Clicca per analisi dettagliata">
             <td class="dashboard-username">${u}</td>
             <td>${days.toFixed(1)}</td>
             <td>${(days * 8).toFixed(0)}</td>
+            ${extraCells}
         </tr>`;
     });
 }
 
-// Toggle Dashboard Sort (Crescente / Decrescente)
+// Toggle Dashboard Sort (bottone legacy — ordina per giorni)
 function toggleDashboardSort() {
-    const btn = document.getElementById('dashboardSortBtn');
-    const icon = btn ? btn.querySelector('.dashboard-sort-icon') : null;
-    
-    // Toggle direzione ordinamento
-    window.dashboardSortDescending = !window.dashboardSortDescending;
-    
-    // Aggiorna UI bottone
-    if (btn && icon) {
-        if (window.dashboardSortDescending) {
-            btn.classList.add('descending');
-            btn.classList.remove('ascending');
-            icon.textContent = '↓';
-            btn.title = 'Ordina crescente';
-        } else {
-            btn.classList.remove('descending');
-            btn.classList.add('ascending');
-            icon.textContent = '↑';
-            btn.title = 'Ordina decrescente';
-        }
-    }
-    
-    // Re-render dashboard con nuovo ordinamento
-    renderDashboard();
+    sortDashboardBy('giorni');
 }
 
 
@@ -4781,52 +4996,53 @@ async function confirmRemoveRelease(){
     await removeReleaseByKey(savedKey, savedTd);
 }
 
-// Rimuove una release dalla chiave specificata per tutti gli utenti target
+// Rimuove una cella R- o PP per tutti gli utenti areaPapyrus sulla data indicata.
+// Nessuna cascata cross-date: cancella solo la data cliccata.
 async function removeReleaseByKey(key, td){
     const parts = key.split('-');
     const year  = parts[parts.length - 3];
     const month = parts[parts.length - 2];
     const day   = parts[parts.length - 1];
+    const yr    = parseInt(year);
 
-    const allUsers = window.usersList || users || [];
+    const papyrusUsers = Object.entries(usersConfig)
+        .filter(([, cfg]) => cfg.areaPapyrus === true)
+        .map(([name]) => name);
 
     closeModal();
     document.getElementById('loadingOverlay').style.display = 'flex';
 
     try {
-        // 1. Rimuovi la cella R- o PP per tutti gli utenti sulla data indicata
-        for(const u of allUsers){
-            const k = `${u}-${year}-${month}-${day}`;
+        for(const u of papyrusUsers){
+            const k  = `${u}-${year}-${month}-${day}`;
+            const rk = `${k}__range`;
             try {
-                await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${parseInt(year)}/${k}`));
+                await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${yr}/${k}`));
+                if(dataCache[rk] !== undefined){
+                    await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${yr}/${rk}`));
+                }
             } catch(e){ console.warn(`skip ${k}`, e); }
             delete dataCache[k];
+            delete dataCache[rk];
         }
 
-        // 2. Leggi la data PP salvata come metadato (__ppDate) e rimuovi anche quelle celle
         try {
-            const ppMetaRef = window.firebaseDB.ref(`ferie${parseInt(year)}/__ppDate`);
+            const ppMetaRef = window.firebaseDB.ref(`ferie${yr}/__ppDate`);
             const snap = await window.firebaseDB.get(ppMetaRef);
             if(snap.exists()){
-                const ppMeta = snap.val(); // formato "anno-mese-giorno"
-                const ppParts = ppMeta.split('-');
-                const ppYear  = ppParts[0];
-                const ppMonth = ppParts[1];
-                const ppDay   = ppParts[2];
-                for(const u of allUsers){
-                    const k = `${u}-${ppYear}-${ppMonth}-${ppDay}`;
-                    try {
-                        await window.firebaseDB.remove(window.firebaseDB.ref(`ferie${parseInt(ppYear)}/${k}`));
-                    } catch(e){ console.warn(`skip PP ${k}`, e); }
-                    delete dataCache[k];
+                const anyReleaseLeft = papyrusUsers.some(u =>
+                    Object.keys(dataCache).some(k =>
+                        k.startsWith(`${u}-${year}-`) && (dataCache[k] || '').startsWith('R-')
+                    )
+                );
+                if(!anyReleaseLeft){
+                    await window.firebaseDB.remove(ppMetaRef);
+                    delete dataCache['__ppDate'];
                 }
-                // Rimuovi anche il metadato __ppDate
-                await window.firebaseDB.remove(ppMetaRef);
-                delete dataCache['__ppDate'];
             }
-        } catch(e){ console.warn('skip __ppDate read', e); }
+        } catch(e){ console.warn('skip __ppDate cleanup', e); }
 
-        await ensureYearRootExists(parseInt(year));
+        await ensureYearRootExists(yr);
         render();
         document.getElementById('loadingOverlay').style.display = 'none';
     } catch(err){
@@ -5782,7 +5998,8 @@ function changeYear(delta){
         document.getElementById('yearLabel').textContent = currentYear;
         // Svuota cache e ricarica dati per il nuovo anno
         dataCache = {};
-        loadAllData().then(() => {
+        loadAllData().then(async () => {
+            await loadResidui(currentYear);
             setupRealtimeListener();
             render();
         });
@@ -6058,6 +6275,7 @@ window.initApp = async function() {
     // STEP 4: Inizializza resto dell'app
     loadTheme();
     await loadAllData();
+    await loadResidui(currentYear);
     setupRealtimeListener();
     render();
     
@@ -6123,7 +6341,7 @@ const msalConfig = {
     auth: {
         clientId: "865d7a43-b0b8-4d4b-a718-864386845d2f", // IMPORTANTE: Sostituire con il tuo Client ID da Azure AD
         authority: "https://login.microsoftonline.com/organizations", // ← Solo account aziendali
-        redirectUri: "https://dexccm.github.io/PianoFerie/", // URL del tuo GitHub Pages
+        redirectUri: "http://localhost:5500", // LOCAL DEV — non committare
         navigateToLoginRequestUrl: false
     },
     cache: {
@@ -6280,7 +6498,56 @@ function initLogin() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', initLogin);
+// =====================================================
+// LOCAL DEV BYPASS — non committare questo file
+// =====================================================
+const DEV_USERS = [
+    { cognome: 'Viscomi',  email: 'simone.viscomi@dataexpert.it', role: 'admin' },
+    { cognome: 'Trevisin', email: 'trevisin@dataexpert.it',        role: 'user'  },
+];
+let devUserIndex = 0;
+
+function applyDevUser(idx) {
+    const u = DEV_USERS[idx];
+    currentUser      = u.cognome;
+    currentUserEmail = u.email;
+    currentUserRole  = u.role;
+    const lbl = document.getElementById('devUserLabel');
+    if (lbl) lbl.textContent = `${u.cognome} (${u.role})`;
+}
+
+window.addEventListener('load', async () => {
+    // Attendi che il modulo Firebase sia pronto (type="module" si inizializza dopo DOMContentLoaded)
+    await new Promise(resolve => {
+        const check = () => window.firebaseDB ? resolve() : setTimeout(check, 50);
+        check();
+    });
+
+    // Inietta banner dev switcher
+    const banner = document.createElement('div');
+    banner.id = 'devBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#7c3aed;color:#fff;font-size:12px;font-family:monospace;padding:4px 12px;display:flex;align-items:center;gap:10px;';
+    banner.innerHTML = `<span>⚙️ DEV MODE</span><span id="devUserLabel"></span><button id="devSwitchBtn" style="background:#fff;color:#7c3aed;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;font-weight:700;">Cambia utente</button>`;
+    document.body.prepend(banner);
+
+    applyDevUser(devUserIndex);
+
+    // showApp() chiama già initApp() internamente — qui impostiamo solo il cambio utente
+    document.getElementById('devSwitchBtn').addEventListener('click', async () => {
+        devUserIndex = (devUserIndex + 1) % DEV_USERS.length;
+        applyDevUser(devUserIndex);
+        // Ricarica residui per il nuovo utente poi ri-renderizza
+        await loadResidui(currentYear);
+        render();
+        applyUserPermissions();
+        calculateStats();
+        renderDashboard();
+    });
+
+    // Imposta le variabili globali PRIMA che showApp le legga
+    // showApp() chiama window.initApp() internamente
+    showApp();
+});
 
 // Inizializza MSAL (inizializzazione sicura dopo il caricamento di MSAL)
 let msalInstance = null;
