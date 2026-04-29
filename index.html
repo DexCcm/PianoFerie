@@ -2841,9 +2841,15 @@ thead .today-col {
             <div class="stat-subvalue" id="peakDays">0 giorni</div>
         </div>
         <div class="stat-card" id="topUserCard" onclick="onStatCardClick('topUser')" style="cursor:pointer;" title="Clicca per analisi utente">
-            <div class="stat-label">Utente con Più Ferie</div>
+            <div class="stat-label">Utente con più Ferie Inserite</div>
             <div class="stat-value" id="topUser">-</div>
             <div class="stat-subvalue" id="topUserDays">0 giorni</div>
+        </div>
+        <!-- Card admin: utente con più ferie disponibili -->
+        <div class="stat-card accent-orange" id="topDisponibileCard" style="display:none">
+            <div class="stat-label">Utente con più Ferie Disponibili</div>
+            <div class="stat-value" id="topDisponibileUser">-</div>
+            <div class="stat-subvalue" id="topDisponibileDays">0 gg disponibili</div>
         </div>
         <!-- Residui ferie storici — visibili solo per utenti USER con dati in Firebase -->
         <div class="stat-card accent-orange" id="residuiPrecCard" style="display:none">
@@ -3836,6 +3842,25 @@ function calculateStats(){
         const saldoCard = document.getElementById('saldoFerieCard');
         saldoCard.classList.remove('accent-green', 'accent-red');
         saldoCard.classList.add(saldo >= 0 ? 'accent-green' : 'accent-red');
+    }
+
+    // Card admin: utente con saldo ferie più alto (totaleDisponibile - giorni usati)
+    const topDispCard = document.getElementById('topDisponibileCard');
+    if (topDispCard) {
+        const hasResidui = window.residuiData && Object.keys(window.residuiData).length > 0;
+        if (currentUserRole === 'admin' && hasResidui) {
+            let bestUser = '', bestSaldo = -Infinity;
+            for (const [u, d] of Object.entries(window.residuiData)) {
+                const usate = userDays[u] || 0;
+                const saldo = Math.round((d.totaleDisponibile - usate) * 100) / 100;
+                if (saldo > bestSaldo) { bestSaldo = saldo; bestUser = u; }
+            }
+            document.getElementById('topDisponibileUser').textContent = bestUser;
+            document.getElementById('topDisponibileDays').textContent = (bestSaldo >= 0 ? '+' : '') + bestSaldo.toFixed(1) + ' gg saldo';
+            topDispCard.style.display = '';
+        } else {
+            topDispCard.style.display = 'none';
+        }
     }
 }
 
@@ -6799,9 +6824,11 @@ function applyUserPermissions() {
         // 0. Classe body per stile dedicato USER
         document.body.classList.add('user-mode');
 
-        // 0b. Nascondi card "Utente con Più Ferie"
+        // 0b. Nascondi card "Utente con Più Ferie" e "Più Ferie Disponibili"
         const topUserCard = document.getElementById('topUserCard');
         if (topUserCard) topUserCard.style.display = 'none';
+        const topDispCard = document.getElementById('topDisponibileCard');
+        if (topDispCard) topDispCard.style.display = 'none';
         
         // 0c. ✅ Imposta activeFilters solo su currentUser per grafico
         activeFilters = new Set([currentUser]);
