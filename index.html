@@ -3837,7 +3837,7 @@ function calculateStats(){
 
         const saldoEl = document.getElementById('saldoFerieVal');
         saldoEl.textContent = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
-        document.getElementById('saldoFerieSub').textContent = saldo >= 0 ? 'giorni rimanenti' : 'giorni in eccesso';
+        document.getElementById('saldoFerieSub').textContent = saldo >= 0 ? '(Tot. Ferie disponibili - Tot. Ferie Inserite)' : '(Tot. Ferie disponibili - Tot. Ferie Inserite)';
 
         const saldoCard = document.getElementById('saldoFerieCard');
         saldoCard.classList.remove('accent-green', 'accent-red');
