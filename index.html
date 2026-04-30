@@ -3837,7 +3837,7 @@ function calculateStats(){
 
         const saldoEl = document.getElementById('saldoFerieVal');
         saldoEl.textContent = (saldo >= 0 ? '+' : '') + saldo.toFixed(1);
-        document.getElementById('saldoFerieSub').textContent = saldo >= 0 ? '(Tot. Ferie disponibili - Tot. Ferie Inserite)' : '(Tot. Ferie disponibili - Tot. Ferie Inserite)';
+        document.getElementById('saldoFerieSub').textContent = saldo >= 0 ? 'giorni rimanenti' : 'giorni in eccesso';
 
         const saldoCard = document.getElementById('saldoFerieCard');
         saldoCard.classList.remove('accent-green', 'accent-red');
@@ -6013,13 +6013,23 @@ function exportUserAnalysisPDF(){
 // ================= NAVIGATION =================
 
 function nextMonth(){
-    currentMonth=(currentMonth+1)%12;
-    render();
+    if (currentMonth === 11) {
+        currentMonth = 0;
+        changeYear(+1);
+    } else {
+        currentMonth++;
+        render();
+    }
 }
 
 function prevMonth(){
-    currentMonth=(currentMonth+11)%12;
-    render();
+    if (currentMonth === 0) {
+        currentMonth = 11;
+        changeYear(-1);
+    } else {
+        currentMonth--;
+        render();
+    }
 }
 
 function changeYear(delta){
