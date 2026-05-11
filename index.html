@@ -2793,7 +2793,6 @@ thead .today-col {
     <button class="view-btn" onclick="setView('half',this)">Semestre</button>
     <button class="view-btn" onclick="setView('year',this)">Anno</button>
     <button class="view-btn" onclick="exportToPDF()">⬇︎ PDF</button>
-    <button class="view-btn" onclick="exportToExcel()">⬇︎ Excel</button>
 </div>
 
 <!-- Bottoni azione dentro sticky-nav -->
@@ -6071,19 +6070,17 @@ function exportToExcel(){
 // ================= EXPORT TO PDF =================
 
 function exportToPDF(){
-    // Determina nome file
-    let fileName = `Planner_Ferie_2026`;
+    let fileName = `Planner_Ferie_${currentYear}`;
     if(viewMode === 'month'){
-        fileName = `Planner_Ferie_${months[currentMonth].n}_2026`;
+        fileName = `Planner_Ferie_${months[currentMonth].n}_${currentYear}`;
     } else if(viewMode === 'quarter'){
         const q = Math.floor(currentMonth/3) + 1;
-        fileName = `Planner_Ferie_Q${q}_2026`;
+        fileName = `Planner_Ferie_Q${q}_${currentYear}`;
     } else if(viewMode === 'half'){
         const h = currentMonth < 6 ? 1 : 2;
-        fileName = `Planner_Ferie_Semestre${h}_2026`;
+        fileName = `Planner_Ferie_Semestre${h}_${currentYear}`;
     }
-    
-    // Determina quali mesi includere
+
     let monthsToExport = [currentMonth];
     if(viewMode === 'quarter'){
         const s = Math.floor(currentMonth/3)*3;
@@ -6093,108 +6090,121 @@ function exportToPDF(){
     } else if(viewMode === 'year'){
         monthsToExport = [0,1,2,3,4,5,6,7,8,9,10,11];
     }
-    
-    // Costruisci HTML - landscape A4, 3 mesi per pagina distribuiti uniformemente
-    // Strategia: wrapper flex column con justify-content:space-between per sfruttare tutta l'altezza
-    // Righe altezza 13px, font 8px → leggibile anche su carta stampata
+
+    // Stesso approccio per tutti i tipi: elemento appeso al body in flusso normale,
+    // nessun positioning speciale — è l'unico modo che html2canvas cattura correttamente.
+    // L'uniformità tra utenti deriva dal fatto che html2pdf scala sempre l'immagine
+    // catturata per riempire la pagina PDF, indipendentemente dalla larghezza del viewport.
+
+    const isSingleMonth = monthsToExport.length === 1;
+
+    // Per il mese singolo le righe vengono calcolate per riempire l'A4 landscape:
+    // usabile 190mm → titolo ~9mm + thead ~12mm → tbody ~169mm / numUtenti
+    const mi0 = monthsToExport[0];
+    const m0  = months[mi0];
+    const rowHmm  = isSingleMonth ? Math.min(22, Math.max(6, 169 / users.length)) : 0;
+    const rowHpx  = isSingleMonth ? (rowHmm / 25.4 * 96).toFixed(1) + 'px' : '13px';
+    const cellFs  = isSingleMonth ? Math.min(10, Math.max(7, rowHmm * 0.55)).toFixed(1) + 'px' : '8px';
+    const nameW   = isSingleMonth ? '55px' : '40px';
+    const thH     = isSingleMonth ? '14px' : '12px';
+    const titleFs = isSingleMonth ? '11px' : '9px';
+
+    const renderMonth = (mi) => {
+        const m = months[mi];
+        let s = '';
+        s += '<div style="background:#dbeafe;color:#172754;font-size:' + titleFs + ';font-weight:bold;text-align:center;padding:2px 0;border:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
+        s += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
+        s += '<thead>';
+        s += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0 2px;font-weight:bold;font-size:7px;width:' + nameW + ';height:' + thH + ';line-height:1;vertical-align:middle;text-align:left;">Utente</th>';
+        for(let d = 1; d <= m.d; d++){
+            const dn = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
+            s += '<th style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:7px;height:' + thH + ';line-height:1;text-align:center;vertical-align:middle;">' + dn + '</th>';
+        }
+        s += '</tr><tr>';
+        for(let d = 1; d <= m.d; d++){
+            const wd = new Date(currentYear, mi, d).getDay();
+            const isH = wd===0||wd===6||m.h.includes(d);
+            s += '<th style="background:' + (isH?'#fde68a':'#dbeafe') + ';color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:8px;height:' + thH + ';line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
+        }
+        s += '</tr></thead><tbody>';
+        users.forEach(u => {
+            const uName = (u.length > (isSingleMonth?11:10) ? u.substring(0,isSingleMonth?10:9) : u).toUpperCase();
+            const rh = 'height:' + rowHpx + ';';
+            const cs = 'border:1px solid #aaa;padding:0;text-align:center;font-weight:bold;font-size:' + cellFs + ';' + rh + 'line-height:1;vertical-align:middle;';
+            s += '<tr style="' + rh + '"><td style="font-weight:bold;text-align:left;background:#f1f5f9;border:1px solid #aaa;padding:0 2px;font-size:' + cellFs + ';' + rh + 'line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + uName + '</td>';
+            for(let d = 1; d <= m.d; d++){
+                const wd  = new Date(currentYear, mi, d).getDay();
+                const key = u + '-' + currentYear + '-' + (mi+1) + '-' + d;
+                const v   = dataCache[key] || "";
+                if(wd===0){
+                    s += '<td style="background:#fde68a;' + cs + 'color:#92400e;">D</td>';
+                } else if(wd===6){
+                    let dv=v||"S", bg='#fde68a', tc='#92400e';
+                    if(v&&v.startsWith('R-')){ dv=v.substring(2); bg='#1e40af'; tc='#fff'; }
+                    s += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
+                } else if(m.h.includes(d)){
+                    s += '<td style="background:#fde68a;' + cs + 'color:#92400e;">F</td>';
+                } else {
+                    let bg='#fff', tc='#111';
+                    if(v==='8'){ bg='#fca5a5'; tc='#7f1d1d'; }
+                    else if(v==='PP'){ bg='#1e40af'; tc='#fff'; }
+                    else if(v&&v.startsWith('R-')){ bg='#1e40af'; tc='#fff'; }
+                    else if(v&&v.startsWith('SG:')){ bg='#ede9fe'; tc='#3F2278'; }
+                    else if(v&&v.endsWith('M')){ bg='#93c5fd'; tc='#1e3a8a'; }
+                    else if(v&&v.endsWith('P')){ bg='#F79169'; tc='#7c2d12'; }
+                    const dv = v&&v.startsWith('R-') ? v.substring(2)
+                             : v&&v.startsWith('SG:') ? v.substring(3).split(':')[0]
+                             : v;
+                    s += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
+                }
+            }
+            s += '</tr>';
+        });
+        s += '</tbody></table>';
+        return s;
+    };
+
     let html = '<div style="font-family:Arial,sans-serif;background:white;width:100%;">';
 
-    // Raggruppa i mesi in pagine da 3
-    const pages = [];
-    for(let i = 0; i < monthsToExport.length; i += 3){
-        pages.push(monthsToExport.slice(i, i + 3));
+    if(isSingleMonth){
+        // Mese singolo: una sola tabella con righe alte per riempire l'A4 landscape.
+        // Nessun wrapper flex: la tabella si dimensiona esattamente dal rowHpx calcolato.
+        html += renderMonth(mi0);
+    } else {
+        // Multi-mese: 3 per pagina, distribuiti con flex space-between
+        const pages = [];
+        for(let i = 0; i < monthsToExport.length; i += 3){
+            pages.push(monthsToExport.slice(i, i+3));
+        }
+        pages.forEach((pageMeses, pageIdx) => {
+            if(pageIdx > 0) html += '<div style="page-break-before:always;"></div>';
+            html += '<div style="display:flex;flex-direction:column;justify-content:space-between;min-height:180mm;gap:4mm;">';
+            pageMeses.forEach(mi => {
+                html += '<div style="flex:1;">' + renderMonth(mi) + '</div>';
+            });
+            html += '</div>';
+        });
     }
 
-    pages.forEach((pageMeses, pageIdx) => {
-        if(pageIdx > 0){
-            html += '<div style="page-break-before:always;"></div>';
-        }
-        // Contenitore pagina: flex column, distribuisce le 3 tabelle uniformemente
-        html += '<div style="display:flex;flex-direction:column;justify-content:space-between;min-height:180mm;gap:4mm;">';
-
-        pageMeses.forEach(mi => {
-            const m = months[mi];
-            html += '<div style="flex:1;">';
-            html += '<div style="background:#dbeafe;color:#172754;font-size:9px;font-weight:bold;text-align:center;padding:2px 0;border-bottom:2px solid #172754;border:1px solid #172754;">' + m.n + ' ' + currentYear + '</div>';
-            html += '<table style="width:100%;border-collapse:collapse;table-layout:fixed;">';
-            html += '<thead>';
-            // Riga giorni settimana
-            html += '<tr><th rowspan="2" style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0 2px;font-weight:bold;font-size:7px;width:40px;height:12px;line-height:1;vertical-align:middle;text-align:left;">Utente</th>';
-            for(let d = 1; d <= m.d; d++){
-                const dayName = ["d","l","m","m","g","v","s"][new Date(currentYear, mi, d).getDay()];
-                html += '<th style="background:#dbeafe;color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:7px;height:12px;line-height:1;text-align:center;vertical-align:middle;">' + dayName + '</th>';
-            }
-            html += '</tr><tr>';
-            for(let d = 1; d <= m.d; d++){
-                const wd = new Date(currentYear, mi, d).getDay();
-                const isH = wd === 0 || wd === 6 || m.h.includes(d);
-                html += '<th style="background:' + (isH ? '#fde68a' : '#dbeafe') + ';color:#172754;border:1px solid #aaa;padding:0;font-weight:bold;font-size:8px;height:12px;line-height:1;text-align:center;vertical-align:middle;">' + d + '</th>';
-            }
-            html += '</tr></thead><tbody>';
-
-            users.forEach(u => {
-                const userName = (u.length > 10 ? u.substring(0,9) : u).toUpperCase();
-                const rh = 'height:13px;';
-                const cs = 'border:1px solid #aaa;padding:0;text-align:center;font-weight:bold;font-size:8px;' + rh + 'line-height:1;vertical-align:middle;';
-                html += '<tr><td style="font-weight:bold;text-align:left;background:#f1f5f9;border:1px solid #aaa;padding:0 2px;font-size:8px;' + rh + 'line-height:1;vertical-align:middle;white-space:nowrap;overflow:hidden;">' + userName + '</td>';
-                for(let d = 1; d <= m.d; d++){
-                    const wd  = new Date(currentYear, mi, d).getDay();
-                    const key = u + '-' + currentYear + '-' + (mi + 1) + '-' + d;
-                    const v   = dataCache[key] || "";
-                    if(wd === 0){
-                        html += '<td style="background:#fde68a;' + cs + 'color:#92400e;">D</td>';
-                    } else if(wd === 6){
-                        let dv = v || "S", bg = '#fde68a', tc = '#92400e';
-                        if(v.startsWith && v.startsWith('R-')){ dv = v.substring(2); bg = '#1e40af'; tc = '#fff'; }
-                        html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
-                    } else if(m.h.includes(d)){
-                        html += '<td style="background:#fde68a;' + cs + 'color:#92400e;">F</td>';
-                    } else {
-                        let bg = '#fff', tc = '#111';
-                        if(v === '8'){ bg = '#fca5a5'; tc = '#7f1d1d'; }
-                        else if(v === 'PP'){ bg = '#1e40af'; tc = '#fff'; }
-                        else if(v && v.startsWith('R-')){ bg = '#1e40af'; tc = '#fff'; }
-                        else if(v && v.startsWith('SG:')){ bg = '#ede9fe'; tc = '#3F2278'; }
-                        else if(v.endsWith && v.endsWith('M')){ bg = '#93c5fd'; tc = '#1e3a8a'; }
-                        else if(v.endsWith && v.endsWith('P')){ bg = '#F79169'; tc = '#7c2d12'; }
-                        let dv = v && v.startsWith('R-') ? v.substring(2)
-                               : v && v.startsWith('SG:') ? v.substring(3).split(':')[0]
-                               : v;
-                        html += '<td style="background:' + bg + ';color:' + tc + ';' + cs + '">' + dv + '</td>';
-                    }
-                }
-                html += '</tr>';
-            });
-            html += '</tbody></table></div>';
-        });
-
-        html += '</div>'; // fine pagina flex
-    });
-
     html += '</div>';
-    
-    // Crea elemento
+
     const element = document.createElement('div');
     element.innerHTML = html;
     document.body.appendChild(element);
-    
-    // Opzioni ottimizzate: margini 1cm, qualità ridotta per file più leggero
+
     const opt = {
-        margin: [10, 10, 10, 10], // top, right, bottom, left in mm (1cm)
+        margin: [10, 10, 10, 10],
         filename: fileName + '.pdf',
         image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 3, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true }
+        jsPDF: { unit: 'mm', format: [297, 210], orientation: 'landscape', compress: true }
     };
-    
-    // Genera
+
     html2pdf().set(opt).from(element).save().then(function(){
         document.body.removeChild(element);
     }).catch(function(error){
         console.error('Errore PDF:', error);
-        if(document.body.contains(element)){
-            document.body.removeChild(element);
-        }
+        if(document.body.contains(element)) document.body.removeChild(element);
     });
 }
 
